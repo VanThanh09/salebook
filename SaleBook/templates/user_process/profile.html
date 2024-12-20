@@ -1,0 +1,99 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}
+Thông tin tài khoản
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Card Profile -->
+    <div class="card">
+        <div class="row g-0">
+            <div class="col-md-4 d-flex justify-content-center align-items-center">
+                <!-- Ảnh đại diện -->
+                <img src="{{ current_user.avatar }}" class="rounded-circle" width="200">
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h5 class="card-title">{{current_user.name}}</h5>
+                    <p class="card-text">Email: </p>
+                    <p class="card-text">Ngày sinh: </p>
+                    <p class="card-text">Giới tính: </p>
+                    <p class="card-text">Số điện thoại: </p>
+                    <p class="card-text"><small class="text-muted">Ngày tham gia: </small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Nút chỉnh sửa thông tin -->
+    <!--    <div class="mt-4 d-flex justify-content-center mb-4">-->
+    <!--        <a href="#" class="btn btn-primary">Chỉnh sửa thông tin</a>-->
+    <!--    </div>-->
+
+
+    <div class="my-4">
+        <div class="container">
+            <h1 class="text-center mb-4">Danh sách đơn hàng</h1>
+
+            <!-- Danh sách đơn hàng -->
+            {% if orders %}
+            <div class="accordion" id="orderAccordion">
+                {% for order in orders %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading{{ order.id }}">
+                        <button class="btn w-100 text-start d-flex justify-content-between align-items-center"
+                                type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapse{{ order.id }}"
+                                aria-expanded="true" aria-controls="collapse{{ order.id }}">
+                            <span>Đơn hàng #{{ order.id }} - Tổng tiền: {{ "{:,.0f}".format(order.total_price) }} VNĐ</span>
+                            <span>Ngày đặt: {{ order.order_date }}</span>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ order.id }}" class="accordion-collapse collapse"
+                         aria-labelledby="heading{{ order.id }}" data-bs-parent="#orderAccordion">
+                        <div class="accordion-body">
+                            <p><strong>Thanh toán:</strong> {{ order.payment_method.name }}</p>
+                            <p><strong>Trạng thái giao hàng:</strong> {{ "Đã giao" if order.shipped else "Chưa giao" }}
+                            </p>
+
+                            <!-- Chi tiết đơn hàng -->
+                            <h5 class="mt-3">Chi tiết đơn hàng:</h5>
+                            <table class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th>Sách</th>
+                                    <th>Đơn giá</th>
+                                    <th>Số lượng</th>
+                                    <th>Tổng</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for detail in order.order_detail %}
+                                <tr>
+                                    <td>{{ detail.book.name }}</td>
+                                    <td>{{ "{:,.0f}".format(detail.unit_price) }} VNĐ</td>
+                                    <td>{{ detail.quantity }}</td>
+                                    <td>{{ "{:,.0f}".format(detail.sub_total) }} VNĐ</td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+
+                            <h5 class="text-end">Tổng tiền: <strong>{{ "{:,.0f}".format(order.total_price) }}
+                                VNĐ</strong></h5>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert bg-sp text-center">
+                Không có đơn hàng nào!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

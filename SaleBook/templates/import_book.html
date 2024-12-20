@@ -1,0 +1,140 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}
+Hệ thống nhà sách
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-6 bg-white">
+            <h4 class="text-center text-dark fw-bold py-2">Nhập thông tin sách</h4>
+
+            <form id="importForm" method="POST" enctype="multipart/form-data">
+                <!-- Các trường nhập thông tin sách -->
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="name" name="name" required>
+                    <label for="name" class="form-label">Tên Sách</label>
+                </div>
+
+                <div class="form-floating mb-4">
+                    <input type="number" class="form-control" id="price" name="price" required>
+                    <label for="price" class="form-label">Giá</label>
+                </div>
+
+                <div class="form-floating mb-4">
+                    <input type="number" class="form-control" id="quantity" name="quantity" required>
+                    <label for="quantity" class="form-label">Số Lượng</label>
+                </div>
+
+                <div class="mb-4 form-floating">
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                              style="height: 100px"></textarea>
+                    <label for="description" class="form-label">Mô Tả</label>
+                </div>
+
+                <div class="mb-4 form-floating">
+                    <input type="file" class="form-control" id="image" name="image" required>
+                    <label for="image" class="form-label">Hình Ảnh</label>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex">
+                        <div class="form-floating w-100">
+                            <input type="text" class="form-control" id="barcode" name="barcode" autocomplete="off" required>
+                            <label for="barcode" class="form-label">Mã vạch</label>
+                        </div>
+                        <button type="button" class="btn btn-secondary ms-2" id="randomBarcodeBtn">Random</button>
+                    </div>
+                </div>
+
+                <div class="mb-4 form-floating">
+                    <select class="form-select" id="category" name="category_id" required>
+                        <option value="" disabled selected>Chọn thể loại</option>
+                        {% for c in categories %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="category" class="form-label">Thể Loại</label>
+                </div>
+
+                <div class="mb-4 form-floating">
+                    <select class="form-select" id="author" name="author_id" required>
+                        <option value="" disabled selected>Chọn tác giả</option>
+                        {% for a in authors %}
+                            <option value="{{ a.id }}">{{ a.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="author" class="form-label">Tác giả</label>
+                </div>
+
+                <div class="d-flex justify-content-center mb-3">
+                    <button type="submit" class="btn btn-outline-dark w-50">Thêm Sách</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-6 bg-sp d-flex flex-column">
+            <h4 class="text-center text-dark fw-bold py-2">Các sách được thêm</h4>
+            <div class="d-flex justify-content-center mb-4 flex-grow-1">
+                <div id="importDetails"></div>
+            </div>
+            <div class="d-flex justify-content-center mb-3">
+                <input type="submit" value="Xác nhận" class="btn btn-outline-dark w-50"/>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block js_internal %}
+<script>
+    // Hàm để tạo mã vạch ngẫu nhiên
+    function createRandom() {
+        const randomString = Math.random().toString(36).substr(2, 10).toUpperCase();
+        return randomString;
+    }
+
+    // Thêm sự kiện click cho nút random
+    document.getElementById('randomBarcodeBtn').addEventListener('click', function() {
+        const barcodeField = document.getElementById('barcode');
+        barcodeField.value = createRandom();
+    });
+
+    // Gửi form và cập nhật div với dữ liệu session
+    document.getElementById('importForm').addEventListener('submit', function(event) {
+        event.preventDefault();  // Ngừng hành động mặc định của form
+
+        const formData = new FormData(this);  // Lấy dữ liệu từ form
+
+        // Gửi AJAX request
+        fetch('/add_import_detail', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.Successfully === 1) {
+                // Cập nhật div với dữ liệu từ session
+                const importDetailsDiv = document.getElementById('importDetails');
+                importDetailsDiv.innerHTML = '';  // Làm sạch div cũ
+                const importDetails = data.session;
+                Object.values(importDetails).forEach(item => {
+                    const bookInfo = `
+                        <div>
+                            <p><strong>${item.name}</strong></p>
+                            <p>Giá: ${item.price} VNĐ</p>
+                            <p>Số lượng: ${item.quantity}</p>
+                            <p>Mô tả: ${item.description}</p>
+                            <p>Mã vạch: ${item.barcode}</p>
+                        </div>
+                    `;
+                    importDetailsDiv.innerHTML += bookInfo;  // Thêm thông tin sách vào div
+                });
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'layout/base.html' %}
+
+
+{% block title %}
+Văn Thành - Nhà sách trực tuyến
+{% endblock %}
+
+
+{% block content %}
+<div>
+    <!--    <div>-->
+    <!--        {% if current_user.is_authenticated%}-->
+    <!--        <h3 class="text-center text-dark fw-bold mt-3 mb-3">Hi {{ current_user.name }} !!</h3>-->
+    <!--        {% else %}-->
+    <!--        <h3 class="text-center text-dark fw-bold mt-3 mb-3">Hi. How are you?</h3>-->
+    <!--        {% endif %}-->
+    <!--    </div>-->
+
+    <div class="container mt-3 mb-3">
+        {% if books %}
+        <div class="row">
+            {% for b in books %}
+            <div class="col-md-3 col-12 mt-4">
+                <a href="/{{ b.name | lower | replace(' ', '-') }}?book_id={{b.id}}" style="color:black">
+                    <div class="container justify-content-center p-0  bg-sp">
+                        <img class="card-img-top p-4" src="{{ b.image }}" alt="{{ b.name }}">
+                        <div class="card-body text-center pb-3">
+                            <h4 class="card-title markazi-text-main text-truncate" style="font-size:2rem; font-weight: 500;">{{ b.name
+                                }}</h4>
+                            <h4 class="card-title" style="font-size:1rem; font-weight: 400;">{{ b.author }}</h4>
+                            <p class="card-text py-2 mt-4 btn-hover">{{ "{:,.0f}".format(b.price) }} VNĐ</p>
+                        </div>
+
+                        <!--                        <div class="card-body text-center pb-3">-->
+                        <!--                            <button class="btn btn-hover" style="border: 1px solid;"-->
+                        <!--                                    onclick="addToCart({{b.id}}, {{current_user.id}})">Thêm vào giỏ hàng-->
+                        <!--                            </button>-->
+                        <!--                        </div>-->
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info mt-1">KHÔNG có sản phẩm nào!</div>
+        {% endif %}
+    </div>
+
+    <!--pagination-->
+    <div>
+        {% if pages > 1 %}
+        <ul class="pagination bg-main justify-content-center my-3">
+            <li class="page-item"><a class="page-link bg-main" href="/?page={{page-1}}"
+                                     style="color: #887d55; {% if page == 1 %} pointer-events: none; {% endif %}">Previous</a>
+            </li>
+            {% for i in range(1, pages + 1) %}
+            <li class="page-item"><a class="page-link bg-main" href="/?page={{i}}"
+                                     style="color: #887d55; {% if i == page %} text-decoration: underline; background-color: #bfbaaf; {% endif %}">{{i}}</a>
+            </li>
+            {% endfor %}
+            <li class="page-item"><a class="page-link bg-main" href="/?page={{page+1}}"
+                                     style="color: #887d55; {% if page == pages %} pointer-events: none; {% endif %}">Next</a>
+            </li>
+
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
+{% block css_internal %}
+<style>
+    .card-img-top {
+        width: 100%;       /* Đảm bảo hình ảnh chiếm đầy chiều rộng của card */
+        height: 300px;     /* Đặt chiều cao cố định cho card */
+        object-fit: contain; /* Đảm bảo hình ảnh không bị cắt xén, hiển thị đầy đủ */
+    }
+
+    .btn-hover{
+        color: #887d55;
+        font-size: 1rem;
+    }
+
+<!--    .btn-hover:hover {-->
+<!--        background-color: black;-->
+<!--        color: #efede5 !important;-->
+<!--    }-->
+
+    a {
+        text-decoration: none;
+    }
+</style>
+{% endblock %}

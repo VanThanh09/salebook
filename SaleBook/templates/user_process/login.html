@@ -1,0 +1,38 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}
+Đăng nhập tài khoản
+{% endblock %}
+
+
+{% block content %}
+<div class="container d-flex  justify-content-center mt-5 mb-5">
+    <div class="col-12 col-lg-6 mt-5">
+        <h3 class="text-center text-dark fw-bold mb-5">ĐĂNG NHẬP NGƯỜI DÙNG</h3>
+
+        {% if err_msg %}
+        <div class="alert alert-danger">
+            {{ err_msg }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/login">
+            <div class="form-floating mb-3 mt-3">
+                <input type="text" class="form-control bg-sp" id="username" placeholder="Tên đăng nhập" name="username">
+                <label for="username">Tên đăng nhập</label>
+            </div>
+
+            <div class="form-floating mt-3 mb-3">
+                <input type="password" class="form-control bg-sp" id="password" placeholder="Mật khẩu" name="password">
+                <label for="password">Mật khẩu</label>
+            </div>
+
+            <!-- Căn giữa nút Đăng nhập -->
+            <div class="d-flex justify-content-center mt-5 mb-3">
+                <input type="submit" value="Đăng nhập" class="btn btn-outline-dark w-50"/>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'layout/base.html' %}
+
+
+{% block content %}
+<h1 class="text-center text-success mt-1">GIỎ HÀNG</h1>
+
+<div class="container">
+    {% if cart %}
+    <table class="table">
+        <tr>
+            <th>Tên sản phẩm</th>
+            <th>Đơn giá</th>
+            <th>Số lượng</th>
+            <th></th>
+        </tr>
+        {% for c in cart %}
+        <tr>
+            <td>{{ c.books.name }}</td>
+            <td>{{ "{:,.0f}".format(c.books.price) }} VNĐ</td>
+            <td>
+                <input id="{{c.id}}" oninput="changeCart({{c.id}}, this.value, {{c.customer_id}}, {{ c.books.stock_quantity }})" type="number"
+                       value="{{ c.quantity }}" min="1" class="form-control"/>
+            </td>
+            <td>
+                <button class="btn btn-danger" onclick="removeCart({{ c.id }})">&times;</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <div class="alert alert-info">
+<!--        <div class="mb-3">-->
+<!--            <label for="cart-total-quantity" class="form-label">Tổng sản phẩm: </label>-->
+<!--            <input type="text" class="form-control bg-sp" id="cart-total-quantity" value="{{cart_stats.total_quantity}}"-->
+<!--                   disabled>-->
+<!--        </div>-->
+        <span id="iii">{{cart_stats.total_quantity}}</span>
+        <div class="mb-3">
+            <label for="cart-total-amount" class="form-label">Tổng tiền: </label>
+            <input type="text" class="form-control bg-sp" id="cart-total-amount" value="{{ '{:,.0f}'.format(cart_stats.total_amount) }} VNĐ"
+                   disabled>
+        </div>
+    </div>
+
+    <div>
+        <!--        <form action="/create-checkout-session" method="POST">-->
+        <button class="btn" onclick="payment(null, null, {{ current_user.id }})" id="paymentInCart">Pay with Stripe
+        </button>
+        <!--        </form>-->
+
+        <button class="btn" id="demo">Pay with Stripe</button>
+
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">KHÔNG có sản phẩm nào trong giỏ!</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+

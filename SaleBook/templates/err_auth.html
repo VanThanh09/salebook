@@ -1,0 +1,18 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}
+Lỗi
+{% endblock %}
+
+{% block content %}
+<div style="height: 10rem"></div>
+<div class="container d-flex justify-content-center mt-5 mb-5">
+    <div class="col-12 col-lg-6">
+        {% if err%}
+        <h3 class="text-center text-dark fw-bold">{{err}}</h3>
+                {% else %}
+<!--        <h3 class="text-center text-dark fw-bold">Vui lòng đăng nhập tài khoản</h3>-->
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
