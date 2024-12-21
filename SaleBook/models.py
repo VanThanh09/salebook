@@ -111,6 +111,7 @@ class OrderDetail(db.Model):
 class Import(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     import_date = Column(DateTime, default=datetime.now())
+    total_price = Column(Double, default=0)
 
     importer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
 
@@ -121,7 +122,7 @@ class Import(db.Model):
 class ImportDetail(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     quantity = Column(Integer, nullable=False, default=1)
-    unit_price = Column(Double, nullable=False, default=0)
+    unit_price = Column(Double, nullable=False, default=0) # Tương lai tăng giá sách thì sao
 
     import_id = Column(Integer, ForeignKey('import.id'), nullable=False)
     book_id = Column(Integer, ForeignKey('book.id'), nullable=False)

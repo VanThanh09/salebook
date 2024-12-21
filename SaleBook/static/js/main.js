@@ -1,7 +1,4 @@
-function addToCart(book_id, customer_id, stock_quantity) {
-    if (stock_quantity < 1) {
-        alert('Hiện tại trong kho đã hết sản phẩm\nVui lòng thử lại sau!!')
-    } else {
+function addToCart(book_id, customer_id) {
         fetch("/api/carts", {
             method: "POST",
             body: JSON.stringify({
@@ -22,7 +19,6 @@ function addToCart(book_id, customer_id, stock_quantity) {
             for (let item of items)
                 item.innerText = data.total_quantity;
         });
-    }
 }
 
 
@@ -62,7 +58,7 @@ function changeCart(cart_id, quantity, customer_id, stock_quantity) {
     }
 
     if (quantity < 0) {
-        alert('Số lượng tối thiểu là 0\nHãy xóa sản phẩm nếu bạn không muốn mua')
+        alert('Số lượng tối thiểu là 1\nHãy xóa sản phẩm nếu bạn không muốn mua')
         document.getElementById(cart_id).value = 0;
         quantity = 0;
     }
@@ -94,9 +90,21 @@ function changeCart(cart_id, quantity, customer_id, stock_quantity) {
         document.getElementById("cart-total-amount").value = data.total_amount.toLocaleString() + "VNĐ";
 
 
-
 //        window.location.reload();
     });
+}
+
+
+function isAuthUser() {
+    fetch("/api/carts", {
+            method: "POST",
+        }).then(res => {
+            if(res.status === 401) {
+                window.location.href = '/login'
+            } else {
+                return
+            }
+        })
 }
 
 

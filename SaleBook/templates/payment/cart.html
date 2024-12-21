@@ -18,7 +18,7 @@
             <td>{{ c.books.name }}</td>
             <td>{{ "{:,.0f}".format(c.books.price) }} VNĐ</td>
             <td>
-                <input id="{{c.id}}" oninput="changeCart({{c.id}}, this.value, {{c.customer_id}}, {{ c.books.stock_quantity }})" type="number"
+                <input  type="number" id="{{c.id}}" oninput="changeCart({{c.id}}, this.value, {{c.customer_id}}, {{ c.books.stock_quantity }})"
                        value="{{ c.quantity }}" min="1" class="form-control"/>
             </td>
             <td>
@@ -44,7 +44,7 @@
 
     <div>
         <!--        <form action="/create-checkout-session" method="POST">-->
-        <button class="btn" onclick="payment(null, null, {{ current_user.id }})" id="paymentInCart">Pay with Stripe
+        <button class="btn" id="paymentInCart">Pay with Stripe
         </button>
         <!--        </form>-->
 
@@ -59,4 +59,26 @@
 {% endblock %}
 
 
+{% block js_internal %}
+<script>
+    document.getElementById("paymentInCart").addEventListener("click", function() {
+        var isValid = true;
+
+        {% for c in cart %}
+        let {{ c.books.name | lower | replace(' ', '_') }} = document.getElementById("{{c.id}}").value;
+
+        if ( {{ c.books.name| lower | replace(' ', '_') }} > {{ c.books.stock_quantity }}) {
+            alert('Số lượng tối đa còn lại của {{ c.books.name }} là ' + {{ c.books.stock_quantity }} + '\nXin lỗi vì sự bất tiện này');
+            document.getElementById("{{c.id}}").value = {{ c.books.stock_quantity }};
+            changeCart({{c.id}}, document.getElementById("{{c.id}}").value, {{c.customer_id}}, {{ c.books.stock_quantity }});
+            isValid = false;
+        }
+        {% endfor %}
+
+        if (isValid) {
+            payment(null, null, {{ current_user.id }});
+        }
+    })
+</script>
+{% endblock %}
 

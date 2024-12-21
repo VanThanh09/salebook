@@ -5,10 +5,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Borel&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Markazi+Text&family=Montserrat:wght@100..900&family=Pacifico&display=swap"
       rel="stylesheet">
 
-{% if book %}
-{% block content %}
 
-<div class="container my-4">
+{% block content %}
+<div class="container my-4" style="flex: 1;">
     <div class="row">
         <div class="col-md-6">
             <!-- Bootstrap Carousel for Image Slider -->
@@ -50,11 +49,12 @@
 
             <div class="my-4 d-flex">
                 <button class="btn text-truncate" style="border: 1px solid;" type="submit"
-                        data-bs-toggle="modal" data-bs-target="#muaNgayModal"><i class="bi bi-caret-right-fill"></i> Mua
+                        data-bs-toggle="modal" data-bs-target="#muaNgayModal" onclick="isAuthUser()"><i
+                        class="bi bi-caret-right-fill"></i> Mua
                     ngay
                 </button>
                 <button class="btn ms-4 text-truncate" style="border: 1px solid;"
-                        onclick="addToCart({{book.id}}, {{current_user.id}}, {{book.stock_quantity}})" id="addToCart"><i
+                        onclick="addToCart({{book.id}}, {{current_user.id}})" id="addToCart"><i
                         class="bi bi-cart"></i> Thêm vào giỏ
                     hàng
                 </button>
@@ -64,7 +64,7 @@
 </div>
 
 <!-- Modal -->
-{% if current_user.is_authenticated%}
+{% if current_user.is_authenticated %}
 <div class="modal fade" id="muaNgayModal" tabindex="-1" aria-labelledby="muaNgayModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -148,11 +148,6 @@
     });
 
 
-    document.getElementById("addToCart").addEventListener("click", function() {
-
-    })
-
-
     // Lắng nghe input quantity tính tổng tiền
     document.getElementById("quantity").addEventListener("input", function() {
 
@@ -163,8 +158,7 @@
     })
 </script>
 {% endblock %}
-<!--endif của book-->
-{% endif %}
+
 
 {% block css_internal %}
 <style>

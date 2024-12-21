@@ -1,15 +1,18 @@
 from flask import render_template, request, redirect, jsonify, url_for, session
+from sqlalchemy.testing.util import total_size
+
 import dao, utils
 from flask_login import login_user, logout_user, login_required, current_user
 from SaleBook import app, login_manager
-from SaleBook.dao import exist_user
 import math
 import stripe
 import json
+import os
 
 endpoint_secret = 'whsec_PPI1L0c1djpR8XXd08RbEKQzoBJE6Ppe'
 
 login_manager.login_view = "/login"
+
 
 @app.route("/")
 def home():
@@ -34,7 +37,7 @@ def register_process():
     if request.method.__eq__('POST'):
         username = request.form.get('username')
         password = request.form.get('password')
-        user = exist_user(username)
+        user = dao.check_exist_user(username)
         if not username or not password:
             err_msg = 'Vui lòng điền username và password!!'
         elif user:
@@ -67,19 +70,19 @@ def login_process():
         else:
             err_msg = 'Sai thông tin tài khoản mật khẩu!'
             # print(user)
-
-    return render_template('user_process/login.html', err_msg=err_msg)
+    return render_template('user_process/login.html', s="")
 
 
 @app.route('/profile')
 @login_required
 def view_profile():
-    orders = dao.get_order_by_customer_id(current_user.id)
+    orders = dao.get_all_order_by_customer_id(current_user.id)
     return render_template('user_process/profile.html', orders=orders)
 
 
 @app.route('/logout')
 def logout_process():
+    session.clear()
     logout_user()
     return redirect('/')
 
@@ -155,7 +158,7 @@ def chang_cart():
         return jsonify({"error": "User not authenticated"}), 401  # Nếu người dùng chưa đăng nhập
 
     cart_id = request.json.get('cart_id')
-    c_quantity = request.json.get('quantity',0)
+    c_quantity = request.json.get('quantity', 0)
     customer_id = request.json.get('customer_id')
 
     if not cart_id:
@@ -201,10 +204,11 @@ def create_checkout_session():
 
         book = dao.get_book_by_id(book_id)
         cart = dao.get_all_cart(customer_id)
-        line_items = [] # Đại diện cho sản phẩm trong stripe, kiểu mảng dict
-        metadata = {} # Thông tin bổ sung cho phiên thanh toán
+        cart = [c for c in cart if c.quantity != 0]
+        line_items = []  # Đại diện cho sản phẩm trong stripe, kiểu mảng dict
+        metadata = {}  # Thông tin bổ sung cho phiên thanh toán
 
-        if cart:
+        if cart:  # Thanh toán cart
             for c in cart:
                 line_items.append({
                     'price_data': {
@@ -233,8 +237,7 @@ def create_checkout_session():
                 'is_cart': 1
             }
 
-        elif book:
-            # Thông tin sản phẩm
+        elif book:  # Mua ngay trong sản phầm
             line_items.append({
                 'price_data': {
                     'currency': 'vnd',
@@ -247,7 +250,7 @@ def create_checkout_session():
                 },
                 'quantity': quantity,
             })
-            # Thông tin bổ sung để lấy webhook cho dễ
+
             cart_details = [{
                 'book_id': book.id,
                 'quantity': quantity,
@@ -266,14 +269,13 @@ def create_checkout_session():
                 mode='payment',
                 success_url=url_for('success', _external=True),
                 cancel_url=url_for('cancel', _external=True),
-                metadata = metadata,
+                metadata=metadata,
             )
             return jsonify({
                 'checkout_url': checkout_session.url,
             })
         except Exception as e:
-            return jsonify({ 'Error': str(e) }), 400
-
+            return jsonify({'Error': str(e)}), 400
     else:
         return jsonify({'error': 'Invalid request'}), 404
 
@@ -305,12 +307,13 @@ def webhook():
         # Lấy chuỗi dict đã gửi lên từ trước đó
         checkout = event['data']['object']['metadata']
         cart = json.loads(checkout.cart)
-        total_price = sum(int(item["quantity"])*item["price"] for item in cart)
+        total_price = sum(int(item["quantity"]) * item["price"] for item in cart)
 
         # Tạo order và order detail
         order = dao.add_order_online(customer_id=checkout.customer_id, total_price=total_price)
         for c in cart:
-            dao.add_order_detail(order_id=order.id, book_id=c["book_id"], quantity=int(c["quantity"]), unit_price=c["price"])
+            dao.add_order_detail(order_id=order.id, book_id=c["book_id"], quantity=int(c["quantity"]),
+                                 unit_price=c["price"])
 
         # Giảm số lượng hàng tồn kho
         for c in cart:
@@ -327,7 +330,6 @@ def webhook():
     return jsonify(success=True)
 
 
-
 @app.route('/success')
 def success():
     return render_template('payment/success.html')
@@ -338,19 +340,24 @@ def cancel():
     return render_template('payment/cancel.html')
 
 
-@app.route('/import_book')
+@app.route('/import_book', endpoint='import_books')
 @login_required
 def import_book():
-    if dao.check_access_import_book(current_user.id):
+    if dao.access_check_import_book(current_user.id):
         categories = dao.get_all_category()
         authors = dao.get_all_author()
-        return render_template('import_book.html', authors=authors, categories=categories)
+        books = dao.get_all_book()
+        min_book_per_import = 150
+        remaining_book_for_import = 300
+        return render_template('import_book.html', authors=authors, categories=categories, books=books,
+                               min_book_per_import=min_book_per_import, remaining_book_for_import=remaining_book_for_import)
     else:
         return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
 
-@app.route('/add_import_detail', methods=['post'])
-def add_import_detail():
+@app.route('/add_new_book', methods=['post'])
+@login_required
+def add_new_book():
     """
     {
         "1": {
@@ -385,10 +392,16 @@ def add_import_detail():
     price = int(request.form.get('price'))
     quantity = int(request.form.get('quantity'))
     description = request.form.get('description')
-    # image = request.files.get('image')
     barcode = request.form.get('barcode')
     category_id = request.form.get('category_id')
     author_id = request.form.get('author_id')
+    is_new = request.form.get('is_new')
+
+    image = request.files.get('image')
+
+    image.save(os.path.join(app.root_path, 'static/uploads/', image.filename))
+
+    image_url = 'static/uploads/' + image.filename
 
     # for import_id, im in import_detail.items():  # Lặp qua các item trong dictionary
     #     if barcode == im["barcode"]: # Kiểm tra nếu barcode trùng
@@ -405,85 +418,162 @@ def add_import_detail():
             "price": price,
             "quantity": quantity,
             "description": description,
-            # "image": image,
+            "image": image_url,
             "barcode": barcode,
             "category_id": category_id,
-            "author_id": author_id
+            "author_id": author_id,
+            "is_new": is_new
         }
 
     session['import_detail'] = import_detail
 
-    print(import_detail)
-
-    # session.pop('import_detail', default=None)
-
     return jsonify(import_detail)
 
-    #
-    # # Kiểm tra nếu 'import_detail' chưa có trong session
-    # if 'import_detail' not in session:
-    #     session['import_detail'] = {}
-    #
-    # # Kiểm tra nếu mã vạch đã có trong session (dùng barcode làm khóa kiểm tra)
-    # existing_import_id = None
-    # for import_id, detail in session['import_detail'].items():
-    #     if detail['barcode'] == barcode:
-    #         existing_import_id = import_id
-    #         break
-    #
-    # if existing_import_id:  # Nếu tìm thấy sản phẩm với barcode đã có
-    #     # Tăng số lượng sản phẩm hiện tại
-    #     session['import_detail'][existing_import_id]['quantity'] += quantity
-    # else:
-    #     # Nếu chưa có, tạo ID mới và lưu vào session
-    #     import_id = str(len(session['import_detail']) + 1)  # Tạo import_id mới
-    #     session['import_detail'][import_id] = import_detail
-    #
-    # # In ra session để kiểm tra
-    # print(session)
-    #
+
+@app.route('/add_exist_book', methods=['post'])
+@login_required
+def add_exist_book():
+    import_detail = session.get('import_detail')
+    if not import_detail:
+        import_detail = {}
+
+    book_id = request.form.get('book_id')
+    b = dao.get_book_by_id(book_id)
+
+    if b.stock_quantity > 300:
+        return jsonify({'message': 'failed'}), 494
+
+    if b:
+        book_id = b.id
+        name = b.name
+        price = b.price
+        quantity = int(request.form.get('quantity'))
+        description = b.description
+        image = b.image
+        barcode = b.barcode
+        category_id = b.category_id
+        author_id = b.author_id
+        is_new = request.form.get('is_new')
+
+        if name in import_detail:
+            import_detail[name]["quantity"] += quantity
+        else:
+            import_detail[name] = {
+                "book_id": book_id,
+                "name": name,
+                "price": price,
+                "quantity": quantity,
+                "description": description,
+                "image": image,
+                "barcode": barcode,
+                "category_id": category_id,
+                "author_id": author_id,
+                "is_new": is_new
+            }
+
+        session['import_detail'] = import_detail
+
+        return jsonify(import_detail)
+    else:
+        return jsonify({'message': 'failed'}), 400
 
 
-# @app.route('/add_import_detail', methods=['POST'])
-# def add_import_detail():
-#     # Lấy thông tin từ form
-#     name = request.form.get('name')
-#     price = int(request.form.get('price'))
-#     quantity = int(request.form.get('quantity'))
-#     description = request.form.get('description')
-#     barcode = request.form.get('barcode')
-#     category_id = request.form.get('category_id')
-#     author_id = request.form.get('author_id')
-#
-#     # Lấy dữ liệu session, nếu không có thì tạo mới
-#     import_detail = session.get('import_detail', {})
-#
-#     # Kiểm tra nếu đã có sách với mã vạch giống
-#     if barcode in [im['barcode'] for im in import_detail.values()]:
-#         return jsonify({
-#             "Successfully": 40,
-#             "message": "Sách đã tồn tại trong session",
-#             "session": import_detail
-#         })
-#
-#     # Thêm mới hoặc cập nhật sách
-#     import_detail[name] = {
-#         "name": name,
-#         "price": price,
-#         "quantity": quantity,
-#         "description": description,
-#         "barcode": barcode,
-#         "category_id": category_id,
-#         "author_id": author_id
-#     }
-#
-#     # Cập nhật session
-#     session['import_detail'] = import_detail
-#
-#     return jsonify({
-#         "Successfully": 1,
-#         "session": import_detail
-#     })
+
+@app.route('/import_session_book', methods=['post'])
+@login_required
+def import_session_book():
+    """
+    lấy thông tin từ session
+    tạo import
+    thêm sách từ session
+    tạo import_detail
+    :return:
+    """
+    # tính total price
+    total_price = 0
+    for key in session['import_detail']:
+        import_detail = session['import_detail'][key]
+        print(import_detail)
+
+        total_price += total_price + import_detail['quantity'] * import_detail['price']
+
+
+    imp = dao.add_import_book(importer_id = current_user.id,total_price=total_price)
+    for key in session['import_detail']:
+        import_detail = session['import_detail'][key]
+        if int(import_detail['is_new']) == 0:
+            dao.add_exist_book(import_detail['book_id'], import_detail['quantity'])
+            dao.add_import_detail_book(import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=import_detail['book_id'])
+
+        if int(import_detail['is_new']) == 1:
+            b = dao.add_new_book(name=import_detail['name'], price=import_detail['price'],
+                             quantity=import_detail['quantity'], description=import_detail['description'],
+                             barcode=import_detail['barcode'], category_id=import_detail['category_id'],
+                             author_id=import_detail['author_id'], image=import_detail['image'])
+            dao.add_import_detail_book(import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=b.id)
+            os.remove(import_detail['image'])
+
+    del session['import_detail']
+    return jsonify({'message': 'successfully'}), 200
+
+
+@app.route('/clear_all_import_session', methods=['post'])
+@login_required
+def clear_all_import_session():
+    if session['import_detail']:
+
+        for key in session['import_detail']:
+            import_detail = session['import_detail'][key]
+            if int(import_detail['is_new']) == 1    :
+                try:
+                    os.remove(import_detail['image'])
+                except FileNotFoundError:
+                    print("File không tồn tại.")
+        del session['import_detail']
+        return jsonify({'message': 'successfully'}), 200
+
+
+@app.route('/get_session_import', methods=['post'])
+def get_session_import():
+    import_detail = session.get('import_detail')
+    if import_detail:
+        return import_detail
+    else:
+        return jsonify({'error': 'Invalid request'}), 404
+
+
+@app.route('/add_author', methods=['get', 'post'])
+def add_author():
+    s = ''
+    if request.method.__eq__('POST'):
+        name = request.form.get('name')
+        description = request.form.get('description')
+        dao.add_author(name, description)
+        s = "Thêm tác giả thành công"
+        return render_template('add_author.html', successfully=s)
+
+    return render_template('add_author.html')
+
+
+@app.route('/add_category', methods=['get', 'post'])
+def add_category():
+    s = ''
+    if request.method.__eq__('POST'):
+        name = request.form.get('name')
+        description = request.form.get('description')
+        dao.add_category(name, description)
+        s = "Thêm danh mục thành công"
+        return render_template('add_category.html', successfully=s)
+
+    return render_template('add_category.html')
+
+
+@app.route('/import_history')
+@login_required
+def view_import_history():
+    imps = dao.get_all_import_by_importer(current_user.id)
+    return render_template('import_history.html', imps=imps)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,0 +1,70 @@
+{% extends 'layout/base_employee.html' %}
+
+{% block title %}
+Hệ thống nhà sách
+{% endblock %}
+
+
+{% block js%}
+{% endblock %}
+
+
+{% block content %}
+<div class="my-4">
+    <div class="container">
+        <h3 class="text-center mb-4">Lịch sử nhập sách của {{current_user.name}}</h3>
+
+        <!-- Danh sách đơn hàng -->
+        {% if imps %}
+        <div class="accordion" id="orderAccordion">
+            {% for i in imps %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ i.id }}">
+                    <button class="btn w-100 text-start d-flex justify-content-between align-items-center"
+                            type="button"
+                            data-bs-toggle="collapse" data-bs-target="#collapse{{ i.id }}"
+                            aria-expanded="true" aria-controls="collapse{{ i.id }}">
+                        <span>Ngày thêm: {{ i.import_date }}</span>
+                        <span>Tổng tiền: {{ "{:,.0f}".format(i.total_price) }}</span>
+                    </button>
+                </h2>
+                <div id="collapse{{ i.id }}" class="accordion-collapse collapse"
+                     aria-labelledby="heading{{ i.id }}" data-bs-parent="#orderAccordion">
+                    <div class="accordion-body">
+                        <h5 class="mt-3">Chi tiết đơn hàng:</h5>
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>Mã sách</th>
+                                <th>Sách</th>
+                                <th>Đơn giá</th>
+                                <th>Số lượng</th>
+                                <th>Tổng</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for detail in i.import_detail %}
+                            <tr>
+                                <td>{{ detail.book.id }}</td>
+                                <td>{{ detail.book.name }}</td>
+                                <td>{{ "{:,.0f}".format(detail.unit_price) }} VNĐ</td>
+                                <td>{{ detail.quantity }}</td>
+                                <td>{{ "{:,.0f}".format(detail.sub_total) }} VNĐ</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert bg-sp text-center">
+            Không có đơn hàng nào!
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
