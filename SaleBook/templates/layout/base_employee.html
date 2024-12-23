@@ -33,7 +33,7 @@
 </head>
 
 
-<body class="">
+<body>
 <div class="wrapper">
 
 
@@ -52,43 +52,32 @@
 
     <hr class="m-0 p-0"/>
 
-    <div class="row" style="flex: 1;">
-        <div class="col-md-2 bg-dark pt-2">
+    <!-- Toggle Button -->
+    <button class="btn bg-dark toggle-btn d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample"
+            aria-controls="offcanvasExample" style="opacity: 0.5;">
+        <i class="bi text-white bi-list fs-4"></i>
+    </button>
+
+    <!-- Offcanvas Sidebar (mở từ trái sang phải) -->
+    <div class="offcanvas offcanvas-start d-lg-none text-white bg-dark" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel" style="z-index:1500">
+        <div class="offcanvas-header">
+            <h5 id="offcanvasExampleLabel">Chức năng</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
             <nav class="bg-dark text-white sidebar">
-                {% block nav_right %}
-                <ul class="nav flex-column">
-                    <li class="nav-item mt-1">
-                        <a href="/import_book" class="nav-link text-white w-100 text-start active"
-                           onclick="toggleSubMenu('sub-menu-import')">
-                            Nhập sách
-                        </a>
-                        <!-- endpoit nhập sách thì hiện ra -->
-                        {% if request.endpoint == 'import_books' %}
-                        <ul id="sub-menu-import" class="nav flex-column ms-3">
-                            <li class="nav-item mt-1">
-                                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">
-                                    Nhập sách đã có
-                                </button>
-                            </li>
-                            <li class="nav-item mt-1">
-                                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">
-                                    Nhập sách mới
-                                </button>
-                            </li>
-                        </ul>
-                        {% endif %}
-                    </li>
-                    <li class="nav-item mt-1">
-                        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>
-                    </li>
-                    <li class="nav-item mt-1">
-                        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>
-                    </li>
-                    <hr/>
-                    <li class="nav-item mt-1">
-                        <a href="import_history" class="nav-link text-white">Xem lịch sử thêm</a>
-                    </li>
-                </ul>
+                {% block nav_right_small required %}
+
+                {% endblock %}
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center" style="flex: 1;">
+        <div class="col-md-2 bg-dark pt-2  d-none d-lg-block">
+            <nav class="bg-dark text-white sidebar">
+                {% block nav_right required %}
+
                 {% endblock %}
             </nav>
         </div>
@@ -105,6 +94,12 @@
 
 
 <style>
+    .toggle-btn {
+        position: fixed;
+        top: 80px;
+        left: 0px;
+        z-index: 1050; /* Đảm bảo nút nằm trên các phần tử khác */
+    }
 
     .sidebar {
         height: 100%;

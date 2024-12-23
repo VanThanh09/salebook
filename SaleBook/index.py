@@ -92,15 +92,6 @@ def get_user_by_id(user_id):
     return dao.get_user_by_id(user_id)
 
 
-@app.route('/admin')
-@login_required
-def admin():
-    if dao.access_check(current_user.id):
-        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
-    else:
-        return render_template('admin/admin.html')
-
-
 @app.route('/<book_name>')
 def product_detail(book_name):
     book_id = request.args.get('book_id')
@@ -176,6 +167,19 @@ def common_response():
         cart = dao.get_all_cart(current_user.id)
     else:
         cart = {}
+
+    if current_user.is_authenticated:
+        dashboard = ''
+        if dao.access_check_importer(current_user.id):
+            dashboard = '/import_book'
+        if dao.access_check_employee(current_user.id):
+            dashboard = '/sale_book'
+
+        if dashboard:
+            return {
+                'cart_stats': utils.stats_cart(cart),
+                'dashboard': dashboard
+            }
 
     return {
         'cart_stats': utils.stats_cart(cart)
@@ -343,19 +347,19 @@ def cancel():
 @app.route('/import_book', endpoint='import_books')
 @login_required
 def import_book():
-    if dao.access_check_import_book(current_user.id):
+    if dao.access_check_importer(current_user.id):
         categories = dao.get_all_category()
         authors = dao.get_all_author()
         books = dao.get_all_book()
         min_book_per_import = 150
         remaining_book_for_import = 300
-        return render_template('import_book.html', authors=authors, categories=categories, books=books,
+        return render_template('importer/import_book.html', authors=authors, categories=categories, books=books,
                                min_book_per_import=min_book_per_import, remaining_book_for_import=remaining_book_for_import)
     else:
         return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
 
-@app.route('/add_new_book', methods=['post'])
+@app.route('/api/add_new_book', methods=['post'])
 @login_required
 def add_new_book():
     """
@@ -384,195 +388,305 @@ def add_new_book():
     }
     """
 
-    import_detail = session.get('import_detail')
-    if not import_detail:
-        import_detail = {}
+    if dao.access_check(current_user.id):
+        session_name = request.form.get('session_name')
+        import_detail = session.get(session_name)
+        if not import_detail:
+            import_detail = {}
 
-    name = str(request.form.get('name'))
-    price = int(request.form.get('price'))
-    quantity = int(request.form.get('quantity'))
-    description = request.form.get('description')
-    barcode = request.form.get('barcode')
-    category_id = request.form.get('category_id')
-    author_id = request.form.get('author_id')
-    is_new = request.form.get('is_new')
+        # Lấy toàn bộ barcode đã tồn tại và barcode trong form để so sánh
+        barcodes = dao.get_all_barcode_book()
+        barcode = request.form.get('barcode')
 
-    image = request.files.get('image')
+        for b in barcodes:
+            if b[0] == barcode:
+                return jsonify({'error': 'barcode existed'}), 500
 
-    image.save(os.path.join(app.root_path, 'static/uploads/', image.filename))
-
-    image_url = 'static/uploads/' + image.filename
-
-    # for import_id, im in import_detail.items():  # Lặp qua các item trong dictionary
-    #     if barcode == im["barcode"]: # Kiểm tra nếu barcode trùng
-    #         return jsonify({
-    #             "Successfully": 40,
-    #             "session": session.get('import_detail')
-    #         })
-
-    if name in import_detail:
-        import_detail[name]["quantity"] += quantity
-    else:
-        import_detail[name] = {
-            "name": name,
-            "price": price,
-            "quantity": quantity,
-            "description": description,
-            "image": image_url,
-            "barcode": barcode,
-            "category_id": category_id,
-            "author_id": author_id,
-            "is_new": is_new
-        }
-
-    session['import_detail'] = import_detail
-
-    return jsonify(import_detail)
-
-
-@app.route('/add_exist_book', methods=['post'])
-@login_required
-def add_exist_book():
-    import_detail = session.get('import_detail')
-    if not import_detail:
-        import_detail = {}
-
-    book_id = request.form.get('book_id')
-    b = dao.get_book_by_id(book_id)
-
-    if b.stock_quantity > 300:
-        return jsonify({'message': 'failed'}), 494
-
-    if b:
-        book_id = b.id
-        name = b.name
-        price = b.price
+        name = str(request.form.get('name'))
+        price = int(request.form.get('price'))
         quantity = int(request.form.get('quantity'))
-        description = b.description
-        image = b.image
-        barcode = b.barcode
-        category_id = b.category_id
-        author_id = b.author_id
+        description = request.form.get('description')
+        category_id = request.form.get('category_id')
+        author_id = request.form.get('author_id')
         is_new = request.form.get('is_new')
+
+        image = request.files.get('image')
+
+        image.save(os.path.join(app.root_path, 'static/uploads/', image.filename))
+
+        image_url = 'static/uploads/' + image.filename
+
+        # for import_id, im in import_detail.items():  # Lặp qua các item trong dictionary
+        #     if barcode == im["barcode"]: # Kiểm tra nếu barcode trùng
+        #         return jsonify({
+        #             "Successfully": 40,
+        #             "session": session.get('import_detail')
+        #         })
 
         if name in import_detail:
             import_detail[name]["quantity"] += quantity
         else:
             import_detail[name] = {
-                "book_id": book_id,
                 "name": name,
                 "price": price,
                 "quantity": quantity,
                 "description": description,
-                "image": image,
+                "image": image_url,
                 "barcode": barcode,
                 "category_id": category_id,
                 "author_id": author_id,
                 "is_new": is_new
             }
 
-        session['import_detail'] = import_detail
+        session[session_name] = import_detail
 
         return jsonify(import_detail)
     else:
         return jsonify({'message': 'failed'}), 400
 
 
-
-@app.route('/import_session_book', methods=['post'])
+@app.route('/api/add_exist_book', methods=['post'])
 @login_required
-def import_session_book():
+def add_exist_book():
+    """
+    Thêm sách đã có trong cơ sở dữ liệu vào session
+    session_name: thêm cho mục nào đó (bán sách, nhập sách), đặt ẩn trong form
+    :return:
+    """
+
+
+    if dao.access_check(current_user.id):
+        session_name = request.form.get('session_name')
+        # print(session_name)
+        details = session.get(session_name)
+        if not details:
+            details = {}
+
+        book_id = request.form.get('book_id')
+        # print(book_id)
+        b = dao.get_book_by_id(book_id)
+        book_id = str(b.id)
+
+        # Kiểm tra  quy định số lượng còn lại thì nhập
+        if session_name == 'import_detail':
+            if b.stock_quantity > 300:
+                return jsonify({'message': 'failed'}), 494
+
+        # Kiểm tra số lượng bán ra nhỏ hơn trong kho
+        if session_name == 'invoice_detail':
+            if b.stock_quantity < int(request.form.get('quantity')):
+                return jsonify({'message': 'failed'}), 500
+            if book_id in details:
+                if details[book_id]["quantity"] + int(request.form.get('quantity')) > b.stock_quantity:
+                    return jsonify({'message': 'failed'}), 500
+
+
+        if b:
+            name = b.name
+            price = b.price
+            quantity = int(request.form.get('quantity'))
+            description = b.description
+            image = b.image
+            barcode = b.barcode
+            category_id = b.category_id
+            author_id = b.author_id
+            is_new = request.form.get('is_new')
+
+            if book_id in details:
+                details[book_id]["quantity"] += quantity
+            else:
+                details[book_id] = {
+                    "book_id": book_id,
+                    "name": name,
+                    "price": price,
+                    "quantity": quantity,
+                    "description": description,
+                    "image": image,
+                    "barcode": barcode,
+                    "category_id": category_id,
+                    "author_id": author_id,
+                    "is_new": is_new
+                }
+
+            session[session_name] = details
+            # print(details)
+            return jsonify(details)
+        else:
+            return jsonify({'message': 'failed'}), 400
+    else:
+        return jsonify({'message': 'failed'}), 400
+
+
+@app.route('/api/commit_import_book', methods=['post'])
+@login_required
+def commit_import_book():
     """
     lấy thông tin từ session
     tạo import
-    thêm sách từ session
+    thêm thông tin sách từ session vào csdl
     tạo import_detail
     :return:
     """
     # tính total price
-    total_price = 0
-    for key in session['import_detail']:
-        import_detail = session['import_detail'][key]
-        print(import_detail)
-
-        total_price += total_price + import_detail['quantity'] * import_detail['price']
-
-
-    imp = dao.add_import_book(importer_id = current_user.id,total_price=total_price)
-    for key in session['import_detail']:
-        import_detail = session['import_detail'][key]
-        if int(import_detail['is_new']) == 0:
-            dao.add_exist_book(import_detail['book_id'], import_detail['quantity'])
-            dao.add_import_detail_book(import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=import_detail['book_id'])
-
-        if int(import_detail['is_new']) == 1:
-            b = dao.add_new_book(name=import_detail['name'], price=import_detail['price'],
-                             quantity=import_detail['quantity'], description=import_detail['description'],
-                             barcode=import_detail['barcode'], category_id=import_detail['category_id'],
-                             author_id=import_detail['author_id'], image=import_detail['image'])
-            dao.add_import_detail_book(import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=b.id)
-            os.remove(import_detail['image'])
-
-    del session['import_detail']
-    return jsonify({'message': 'successfully'}), 200
-
-
-@app.route('/clear_all_import_session', methods=['post'])
-@login_required
-def clear_all_import_session():
-    if session['import_detail']:
-
+    if dao.access_check_importer(current_user.id):
+        total_price = 0
         for key in session['import_detail']:
             import_detail = session['import_detail'][key]
-            if int(import_detail['is_new']) == 1    :
-                try:
-                    os.remove(import_detail['image'])
-                except FileNotFoundError:
-                    print("File không tồn tại.")
+            # print(import_detail)
+
+            total_price += total_price + import_detail['quantity'] * import_detail['price']
+
+
+        imp = dao.add_import_book(importer_id = current_user.id,total_price=total_price)
+        for key in session['import_detail']:
+            import_detail = session['import_detail'][key]
+            if int(import_detail['is_new']) == 0:
+                dao.add_exist_book(book_id=import_detail['book_id'], quantity=import_detail['quantity'])
+                dao.add_import_detail_book(quantity=import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=import_detail['book_id'])
+
+            if int(import_detail['is_new']) == 1:
+                b = dao.add_new_book(name=import_detail['name'], price=import_detail['price'],
+                                 quantity=import_detail['quantity'], description=import_detail['description'],
+                                 barcode=import_detail['barcode'], category_id=import_detail['category_id'],
+                                 author_id=import_detail['author_id'], image=import_detail['image'])
+                dao.add_import_detail_book(quantity=import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=b.id)
+                os.remove(import_detail['image'])
+
         del session['import_detail']
         return jsonify({'message': 'successfully'}), 200
-
-
-@app.route('/get_session_import', methods=['post'])
-def get_session_import():
-    import_detail = session.get('import_detail')
-    if import_detail:
-        return import_detail
     else:
-        return jsonify({'error': 'Invalid request'}), 404
+        return jsonify({'message': 'failed'}), 400
+
+
+@app.route('/api/clear_all_by_session_name', methods=['post'])
+@login_required
+def clear_all_by_session_name():
+    if dao.access_check(current_user.id):
+        session_name = request.json.get('session_name')
+        if session[session_name]:
+            for key in session[session_name]:
+                details = session[session_name][key]
+                if int(details['is_new']) == 1:
+                    try:
+                        os.remove(details['image'])
+                    except FileNotFoundError:
+                        print("File không tồn tại.")
+            del session[session_name]
+            return jsonify({'message': 'successfully'}), 200
+    else:
+        return jsonify({'message': 'failed'}), 400
+
+
+@app.route('/api/get_session_by_session_name', methods=['post'])
+@login_required
+def get_session_import():
+    if dao.access_check(current_user.id):
+        session_name = request.json.get('session_name')
+        import_detail = session.get(session_name)
+        if import_detail:
+            return import_detail
+        else:
+            return jsonify({'error': 'Invalid request'}), 404
+    else:
+        return jsonify({'message': 'failed'}), 400
 
 
 @app.route('/add_author', methods=['get', 'post'])
+@login_required
 def add_author():
-    s = ''
-    if request.method.__eq__('POST'):
-        name = request.form.get('name')
-        description = request.form.get('description')
-        dao.add_author(name, description)
-        s = "Thêm tác giả thành công"
-        return render_template('add_author.html', successfully=s)
+    if dao.access_check_importer(current_user.id):
+        s = ''
+        if request.method.__eq__('POST'):
+            name = request.form.get('name')
+            description = request.form.get('description')
+            dao.add_author(name, description)
+            s = "Thêm tác giả thành công"
+            return render_template('add_author.html', successfully=s)
 
-    return render_template('add_author.html')
+        return render_template('importer/add_author.html')
+    else:
+        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
 
 @app.route('/add_category', methods=['get', 'post'])
+@login_required
 def add_category():
-    s = ''
-    if request.method.__eq__('POST'):
-        name = request.form.get('name')
-        description = request.form.get('description')
-        dao.add_category(name, description)
-        s = "Thêm danh mục thành công"
-        return render_template('add_category.html', successfully=s)
+    if dao.access_check_importer(current_user.id):
+        s = ''
+        if request.method.__eq__('POST'):
+            name = request.form.get('name')
+            description = request.form.get('description')
+            dao.add_category(name, description)
+            s = "Thêm danh mục thành công"
+            return render_template('importer/add_category.html', successfully=s)
 
-    return render_template('add_category.html')
+        return render_template('importer/add_category.html')
+    else:
+        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
 
 @app.route('/import_history')
 @login_required
 def view_import_history():
-    imps = dao.get_all_import_by_importer(current_user.id)
-    return render_template('import_history.html', imps=imps)
+    if dao.access_check_importer(current_user.id):
+        imps = dao.get_all_import_by_importer(current_user.id)
+        return render_template('importer/import_history.html', imps=imps)
+    else:
+        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
+
+
+@app.route('/sale_book')
+@login_required
+def sale_book():
+    if dao.access_check_employee(current_user.id):
+        books = dao.get_all_book()
+        return render_template('employee/sale_book.html', books=books)
+    else:
+        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
+
+
+@app.route('/api/commit_invoice_book', methods=['post'])
+@login_required
+def commit_invoice_book():
+    """
+    lấy thông tin từ session
+    tạo invoice
+    thêm thông tin sách từ session vào csdl
+    tạo invoice_detail
+    :return:
+    """
+    # tính total price
+    if dao.access_check_employee(current_user.id):
+        total_price = 0
+        for key in session['invoice_detail']:
+            invoice_detail = session['invoice_detail'][key]
+            print(invoice_detail['quantity'])
+            print(invoice_detail['price'])
+            total_price += total_price + invoice_detail['quantity'] * invoice_detail['price']
+
+
+        invoice = dao.add_invoice_book(employee_id=current_user.id,total_price=total_price)
+        for key in session['invoice_detail']:
+            invoice_detail = session['invoice_detail'][key]
+            if int(invoice_detail['is_new']) == 0:
+                dao.reduce_book_bought(book_id=invoice_detail['book_id'], quantity=invoice_detail['quantity'])
+                dao.add_invoice_detail_book(invoice_id=invoice.id, book_id=invoice_detail['book_id'], unit_price=invoice_detail['price'], quantity=invoice_detail['quantity'])
+
+        del session['invoice_detail']
+        return jsonify({'message': 'successfully'}), 200
+    else:
+        return jsonify({'message': 'failed'}), 400
+
+
+@app.route('/sale_history')
+@login_required
+def sale_history():
+    if dao.access_check_employee(current_user.id):
+        invoices = dao.get_all_invoice_by_employee(current_user.id)
+        return render_template('employee/sale_history.html', invoices=invoices)
+    else:
+        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
+
 
 
 if __name__ == "__main__":

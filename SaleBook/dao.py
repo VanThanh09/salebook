@@ -1,7 +1,6 @@
 from SaleBook import app, db
 import hashlib
-from SaleBook.models import User, UserRole, Book, Category, Cart, Author, Order, PaymentMethod, OrderDetail, Import, \
-    ImportDetail
+from SaleBook.models import User, UserRole, Book, Category, Cart, Author, Order, OrderDetail, Import, Invoice, ImportDetail, InvoiceDetail
 import cloudinary.uploader
 
 # add__ thêm mới
@@ -56,6 +55,10 @@ def add_new_book(name, price, quantity, description, barcode, category_id, autho
 def check_exist_book(book_name):
     b = Book.query.filter(Book.name==book_name).first()
     return b.id
+
+
+def get_all_barcode_book():
+    return Book.query.with_entities(Book.barcode).all()
 
 
 def add_exist_book(book_id, quantity):
@@ -124,13 +127,23 @@ def check_exist_user(username):
 
 # Kiểm tra user không có quyền vào trang admin
 def access_check(user_id):
-    return User.query.filter(User.user_role.__eq__(UserRole.CUSTOMER)).first()
+    u = User.query.get(user_id)
+    if u and u.user_role in {UserRole.INVENTORY_MANAGER, UserRole.ADMIN, UserRole.EMPLOYEE, UserRole.MANAGE}:
+        return True
+    return False
 
 
 #Trả về true nếu là importer, false nếu không phải
-def access_check_import_book(user_id):
+def access_check_importer(user_id):
     u = User.query.get(user_id)
     if u and u.user_role == UserRole.INVENTORY_MANAGER:
+        return True
+    return False
+
+
+def access_check_employee(user_id):
+    u = User.query.get(user_id)
+    if u and u.user_role == UserRole.EMPLOYEE:
         return True
     return False
 
@@ -215,6 +228,25 @@ def add_import_detail_book(quantity, unit_price, import_id, book_id):
 
 def get_all_import_by_importer(importer_id):
     return Import.query.filter(Import.importer_id == importer_id).order_by(Import.import_date.desc()).all()
+
+
+def add_invoice_book(employee_id, total_price):
+    i = Invoice(employee_id=employee_id, total_price=total_price)
+    db.session.add(i)
+    db.session.commit()
+    return i
+
+
+def add_invoice_detail_book(invoice_id, book_id, quantity, unit_price):
+    i_detail = InvoiceDetail(invoice_id=invoice_id, book_id=book_id, quantity=quantity, unit_price=unit_price)
+    db.session.add(i_detail)
+    db.session.commit()
+    return
+
+
+def get_all_invoice_by_employee(employee_id):
+    return Invoice.query.filter(Invoice.employee_id == employee_id).order_by(Invoice.created_date.desc()).all()
+
 
 
 

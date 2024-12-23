@@ -53,6 +53,9 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end bg-sp" aria-labelledby="userDropdownUser">
                         <li><a class="dropdown-item" href="/profile">Tài khoản của tôi</a></li>
+                        {% if dashboard %}
+                        <li><a class="dropdown-item" href="{{ dashboard }}">Bảng điều khiển của tôi</a></li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="/logout">Đăng xuất</a></li>
                     </ul>
                 </div>

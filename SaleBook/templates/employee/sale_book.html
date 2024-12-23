@@ -1,0 +1,218 @@
+{% extends 'layout/base_employee.html' %}
+
+{% block title %}
+Hệ thống nhà sách
+{% endblock %}
+
+
+{% block js%}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"
+        integrity="sha512-r6rDA7W6ZeQhvl8S7yRVQUKVHdexq+GAlNkNNqVC7YyIV+NwqCTJe2hDWCiffTyRNOeGEzRRJ9ifvRm/HCzGYg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% endblock %}
+
+
+{% block nav_right_small  %}
+<ul class="nav flex-column ">
+    <li class="nav-item mt-1">
+        <a href="/sale_book" class="nav-link text-white w-100 text-start active"
+           onclick="toggleSubMenu('sub-menu-import')">
+            Tạo hóa đơn
+        </a>
+        <!-- endpoit nhập sách thì hiện ra -->
+        <!--        {% if request.endpoint == 'import_books' %}-->
+        <!--        <ul id="sub-menu-import" class="nav flex-column ms-3">-->
+        <!--            <li class="nav-item mt-1">-->
+        <!--                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">-->
+        <!--                    Nhập sách đã có-->
+        <!--                </button>-->
+        <!--            </li>-->
+        <!--            <li class="nav-item mt-1">-->
+        <!--                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">-->
+        <!--                    Nhập sách mới-->
+        <!--                </button>-->
+        <!--            </li>-->
+        <!--        </ul>-->
+        <!--        {% endif %}-->
+        <!--    </li>-->
+        <!--    <li class="nav-item mt-1">-->
+        <!--        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>-->
+        <!--    </li>-->
+        <!--    <li class="nav-item mt-1">-->
+        <!--        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>-->
+        <!--    </li>-->
+        <hr/>
+    <li class="nav-item mt-1">
+        <a href="/sale_history" class="nav-link text-white">Xem lịch sử thêm</a>
+    </li>
+</ul>
+{% endblock %}
+
+
+{% block nav_right %}
+<ul class="nav flex-column ">
+    <li class="nav-item mt-1">
+        <a href="/sale_book" class="nav-link text-white w-100 text-start active"
+           onclick="toggleSubMenu('sub-menu-import')">
+            Tạo hóa đơn
+        </a>
+        <!-- endpoit nhập sách thì hiện ra -->
+        <!--        {% if request.endpoint == 'import_books' %}-->
+        <!--        <ul id="sub-menu-import" class="nav flex-column ms-3">-->
+        <!--            <li class="nav-item mt-1">-->
+        <!--                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">-->
+        <!--                    Nhập sách đã có-->
+        <!--                </button>-->
+        <!--            </li>-->
+        <!--            <li class="nav-item mt-1">-->
+        <!--                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">-->
+        <!--                    Nhập sách mới-->
+        <!--                </button>-->
+        <!--            </li>-->
+        <!--        </ul>-->
+        <!--        {% endif %}-->
+        <!--    </li>-->
+        <!--    <li class="nav-item mt-1">-->
+        <!--        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>-->
+        <!--    </li>-->
+        <!--    <li class="nav-item mt-1">-->
+        <!--        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>-->
+        <!--    </li>-->
+        <hr/>
+    <li class="nav-item mt-1">
+        <a href="/sale_history" class="nav-link text-white">Xem lịch sử thêm</a>
+    </li>
+</ul>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+
+
+        <!-- Form nhập sách đã tồn tại trong cơ sở dữ liệu-->
+        <div class="col-md-6 bg-white h-100 d-flex flex-column px-4" id="importExistBook">
+            <h4 class="text-center text-dark fw-bold py-2">Chọn sách được mua</h4>
+
+            <form class="flex-grow-1 d-flex flex-column" id="existImportForm" method="POST"
+                  enctype="multipart/form-data">
+                <div class="flex-grow-1">
+
+                    <!-- Vùng camera quét mã vạch-->
+                    <div class="mb-4 form-floating d-flex  justify-content-center">
+                        <div id="scanner" style="width: 300px;"></div>
+                    </div>
+                    <div class="mb-4 form-floating">
+                        <input type="text" class="form-control" id="barcode" placeholder="Mã vạch"
+                               disabled >
+                        <label for="barcode" class="form-label">Mã vạch</label>
+                    </div>
+
+                    <div class="mb-4 form-floating">
+                        <input type="text" class="form-control" id="searchBook" placeholder="Nhập từ khóa"
+                               onkeyup="filterBooks()">
+                        <label for="searchBook" class="form-label">Nhập từ khóa sách để tìm</label>
+                    </div>
+
+                    <div class="mb-4 form-floating">
+                        <select class="form-select" id="existBook" name="book_id" required>
+                            <option value="" data-barcode="" disabled selected>Chọn sách</option>
+                            {% for b in books %}
+                            <option  value="{{ b.id }}" data-barcode="{{ b.barcode }}">{{ b.name }} - Tác giả: {{b.author}} - Trong kho:
+                                {{b.stock_quantity}} - Giá: {{ '{:,.0f}'.format(b.price) }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <label for="existBook" class="form-label">Sách</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input type="number" class="form-control" id="quantityExist" name="quantity" required>
+                        <label for="quantityExist" class="form-label">Số Lượng</label>
+                    </div>
+                    <input type="text" class="form-control d-none" name="is_new" value="0">
+                    <input type="text" class="form-control d-none" name="session_name" value="invoice_detail">
+                </div>
+                <div class="d-flex justify-content-center mb-4">
+                    <button type="submit" class="btn bg-dark text-white w-50">Thêm Sách</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Form đổ dữ liệu session ra sau khi thêm-->
+        <div class="col-md-6 bg-sp d-flex flex-column">
+            <h4 class="text-center text-dark fw-bold py-2">Hóa đơn</h4>
+            <div class="justify-content-center mb-4 flex-grow-1"
+                 style="overflow-y: auto;overflow-x: hidden; height:600px">
+                <div id="importDetails" class="w-100">
+                    <!--Thông tin các sách được thêm-->
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center mb-4">
+                <button type="button" class="me-4 btn bg-dark text-white w-25" data-bs-toggle="modal"
+                        data-bs-target="#confirmModal">Xác nhận
+                </button>
+                <button type="button" class="ms-4 btn btn-outline-dark w-25" data-bs-toggle="modal"
+                        data-bs-target="#deleteModal">Xóa toàn bộ
+                </button>
+
+                <!-- Modal xác nhận thêm -->
+                <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel"
+                     aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="confirmModalLabel">Xác nhận thêm sách</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="button" class="btn btn-danger" onclick="commitInvoice()">Xác nhận</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal xác nhận xóa toàn bộ -->
+                <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="confirmModalLabel"
+                     aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteModalLabel">Xóa toàn bộ</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="button" class="btn btn-danger"
+                                        onclick="deleteAllBySessionName('invoice_detail')">Xác nhận
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block js_internal %}
+<script src="{{ url_for('static', filename='js/sale_book.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main_employee.js') }}"></script>
+{% endblock %}
+
+{% block css_internal%}
+<style>
+    .image {
+        width: 100%;             /* Hình ảnh chiếm đầy chiều rộng */
+        height: 150px;           /* Chiều cao cố định */
+        object-fit: contain;     /* Đảm bảo hình ảnh không bị cắt xén */
+    }
+</style>
+{% endblock %}

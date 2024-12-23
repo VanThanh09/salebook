@@ -1,0 +1,138 @@
+{% extends 'layout/base_employee.html' %}
+
+{% block title %}
+Hệ thống nhà sách
+{% endblock %}
+
+
+{% block js%}
+{% endblock %}
+
+
+{% block nav_right_small %}
+<ul class="nav flex-column">
+    <li class="nav-item mt-1">
+        <a href="/import_book" class="nav-link text-white w-100 text-start active"
+           onclick="toggleSubMenu('sub-menu-sm-import')">
+            Nhập sách
+        </a>
+        <!-- endpoit nhập sách thì hiện ra -->
+        {% if request.endpoint == 'import_books' %}
+        <ul id="sub-menu-sm-import" class="nav flex-column ms-3">
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">
+                    Nhập sách đã có
+                </button>
+            </li>
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">
+                    Nhập sách mới
+                </button>
+            </li>
+        </ul>
+        {% endif %}
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>
+    </li>
+    <hr/>
+    <li class="nav-item mt-1">
+        <a href="/import_history" class="nav-link text-white">Xem lịch sử thêm</a>
+    </li>
+</ul>
+{% endblock %}
+
+
+{% block nav_right %}
+<ul class="nav flex-column">
+    <li class="nav-item mt-1">
+        <a href="/import_book" class="nav-link text-white w-100 text-start active"
+           onclick="toggleSubMenu('sub-menu-import')">
+            Nhập sách
+        </a>
+        <!-- endpoit nhập sách thì hiện ra -->
+        {% if request.endpoint == 'import_books' %}
+        <ul id="sub-menu-import" class="nav flex-column ms-3">
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">
+                    Nhập sách đã có
+                </button>
+            </li>
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">
+                    Nhập sách mới
+                </button>
+            </li>
+        </ul>
+        {% endif %}
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>
+    </li>
+    <hr/>
+    <li class="nav-item mt-1">
+        <a href="/import_history" class="nav-link text-white">Xem lịch sử thêm</a>
+    </li>
+</ul>
+{% endblock %}
+
+
+{% block content %}
+<div class="container d-flex justify-content-center my-5">
+    <div class="col-12 col-lg-6 mt-4">
+        <h3 class="text-center text-dark fw-bold mb-5">Thêm tác giả</h3>
+        {% if successfully %}
+        <div class="alert alert-success">
+            {{ successfully }}
+        </div>
+        {% endif %}
+        <form method="post" action="/add_author">
+
+            <div class="form-floating mb-3 mt-3">
+                <input type="text" class="form-control bg-main" id="name" placeholder="Tên tác giả" name="name"
+                       required>
+                <label for="name">Tên tác giả</label>
+            </div>
+
+            <div class="mb-4 form-floating">
+                    <textarea class="form-control bg-main" id="description" name="description" rows="3"
+                              style="height: 100px"></textarea>
+                <label for="description" class="form-label">Mô Tả</label>
+            </div>
+
+            <!-- Căn giữa nút Đăng nhập -->
+            <div class="d-flex justify-content-center mt-5 mb-3">
+                <button type="button" class="btn btn-outline-dark w-50" data-bs-toggle="modal"
+                        data-bs-target="#confirmModal" id="addAuthor">
+                    Thêm tác giả
+                </button>
+            </div>
+
+            <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="confirmModalLabel">Xác nhận thêm sách</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                        </div>
+                        <div class="modal-footer">
+
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-danger">Xác nhận</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

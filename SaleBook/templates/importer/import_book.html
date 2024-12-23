@@ -9,6 +9,80 @@ Hệ thống nhà sách
 {% endblock %}
 
 
+{% block nav_right_small %}
+<ul class="nav flex-column">
+    <li class="nav-item mt-1">
+        <a href="/import_book" class="nav-link text-white w-100 text-start active"
+           onclick="toggleSubMenu('sub-menu-sm-import')">
+            Nhập sách
+        </a>
+        <!-- endpoit nhập sách thì hiện ra -->
+        {% if request.endpoint == 'import_books' %}
+        <ul id="sub-menu-sm-import" class="nav flex-column ms-3">
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">
+                    Nhập sách đã có
+                </button>
+            </li>
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">
+                    Nhập sách mới
+                </button>
+            </li>
+        </ul>
+        {% endif %}
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>
+    </li>
+    <hr/>
+    <li class="nav-item mt-1">
+        <a href="/import_history" class="nav-link text-white">Xem lịch sử thêm</a>
+    </li>
+</ul>
+{% endblock %}
+
+
+{% block nav_right %}
+<ul class="nav flex-column">
+    <li class="nav-item mt-1">
+        <a href="/import_book" class="nav-link text-white w-100 text-start active"
+           onclick="toggleSubMenu('sub-menu-import')">
+            Nhập sách
+        </a>
+        <!-- endpoit nhập sách thì hiện ra -->
+        {% if request.endpoint == 'import_books' %}
+        <ul id="sub-menu-import" class="nav flex-column ms-3">
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(1)">
+                    Nhập sách đã có
+                </button>
+            </li>
+            <li class="nav-item mt-1">
+                <button class="nav-link text-white w-100 text-start" onclick="showLayout(2)">
+                    Nhập sách mới
+                </button>
+            </li>
+        </ul>
+        {% endif %}
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_author" class="nav-link text-white">Thêm tác giả</a>
+    </li>
+    <li class="nav-item mt-1">
+        <a href="/add_category" class="nav-link text-white">Thêm danh mục</a>
+    </li>
+    <hr/>
+    <li class="nav-item mt-1">
+        <a href="/import_history" class="nav-link text-white">Xem lịch sử thêm</a>
+    </li>
+</ul>
+{% endblock %}
+
+
 {% block content %}
 <div class="container-fluid h-100">
     <div class="row h-100">
@@ -71,8 +145,10 @@ Hệ thống nhà sách
                     </div>
                 </div>
                 <input type="text" class="form-control d-none" name="is_new" value="1">
+                <input type="text" class="form-control d-none" name="session_name" value="import_detail">
+
                 <div class="d-flex justify-content-center mb-4">
-                    <button type="submit" class="btn btn-outline-dark w-50">Thêm Sách</button>
+                    <button type="submit" class="btn bg-dark text-white w-50">Thêm Sách</button>
                 </div>
             </form>
         </div>
@@ -94,7 +170,9 @@ Hệ thống nhà sách
                         <select class="form-select" id="existBook" name="book_id" required>
                             <option value="" disabled selected>Chọn sách</option>
                             {% for b in books %}
-                            <option value="{{ b.id }}">{{ b.name }} - Tác giả: {{b.author}} - Trong kho: {{b.stock_quantity}}</option>
+                            <option value="{{ b.id }}">{{ b.name }} - Tác giả: {{b.author}} - Trong kho:
+                                {{b.stock_quantity}}
+                            </option>
                             {% endfor %}
                         </select>
                         <label for="existBook" class="form-label">Sách</label>
@@ -104,10 +182,11 @@ Hệ thống nhà sách
                         <label for="quantityExist" class="form-label">Số Lượng</label>
                     </div>
                     <input type="text" class="form-control d-none" name="is_new" value="0">
+                    <input type="text" class="form-control d-none" name="session_name" value="import_detail">
 
                 </div>
                 <div class="d-flex justify-content-center mb-4">
-                    <button type="submit" class="btn btn-outline-dark w-50">Thêm Sách</button>
+                    <button type="submit" class="btn bg-dark text-white w-50">Thêm Sách</button>
                 </div>
             </form>
 
@@ -125,14 +204,14 @@ Hệ thống nhà sách
                 </div>
             </div>
             <div class="d-flex justify-content-center mb-4">
-                <button type="button" class="me-4 btn btn-outline-dark w-25" data-bs-toggle="modal"
+                <button type="button" class="me-4 btn bg-dark text-white w-25" data-bs-toggle="modal"
                         data-bs-target="#confirmModal">Xác nhận
                 </button>
                 <button type="button" class="ms-4 btn btn-outline-dark w-25" data-bs-toggle="modal"
                         data-bs-target="#deleteModal">Xóa toàn bộ
                 </button>
 
-                <!-- Modal -->
+                <!-- Modal xác nhận thêm -->
                 <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel"
                      aria-hidden="true">
                     <div class="modal-dialog">
@@ -150,6 +229,7 @@ Hệ thống nhà sách
                     </div>
                 </div>
 
+                <!-- Modal xác nhận xóa toàn bộ -->
                 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="confirmModalLabel"
                      aria-hidden="true">
                     <div class="modal-dialog">
@@ -161,7 +241,9 @@ Hệ thống nhà sách
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                <button type="button" class="btn btn-danger" onclick="deleteAllImport()">Xác nhận</button>
+                                <button type="button" class="btn btn-danger"
+                                        onclick="deleteAllBySessionName('import_detail')">Xác nhận
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -182,6 +264,12 @@ Hệ thống nhà sách
 {% endblock %}
 
 
+{% block js_internal %}
+<script src="{{ url_for('static', filename='js/import_book.js') }} "></script>
+<script src="{{ url_for('static', filename='js/main_employee.js') }}"></script>
+{% endblock %}
+
+
 {% block css_internal%}
 <style>
     .image {
@@ -192,7 +280,3 @@ Hệ thống nhà sách
 </style>
 {% endblock %}
 
-
-{% block js_internal %}
-<script src="{{ url_for('static', filename='js/import_book.js') }} "></script>
-{% endblock %}

@@ -137,6 +137,7 @@ class ImportDetail(db.Model):
 class Invoice(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     created_date = Column(DateTime, default=datetime.now)
+    total_price = Column(Double, default=0)
 
     customer_id = Column(Integer, ForeignKey('user.id'))
     employee_id = Column(Integer, ForeignKey('user.id'), nullable=False)
@@ -178,7 +179,7 @@ if __name__ == '__main__':
         db.create_all()
 
         # import hashlib
-        # importer = User(name='Importer', username = 'importer', password=str(hashlib.md5('123'.strip().encode('utf-8')).hexdigest()), user_role=UserRole.INVENTORY_MANAGER)
+        # importer = User(name='Employee', username = 'employee', password=str(hashlib.md5('123'.strip().encode('utf-8')).hexdigest()), user_role=UserRole.EMPLOYEE)
         # db.session.add(importer)
 
         # cus = User.query.get(1)

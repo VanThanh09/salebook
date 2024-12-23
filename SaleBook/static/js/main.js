@@ -1,3 +1,5 @@
+// Thêm một sản phẩm vô cart
+// book_detail.html
 function addToCart(book_id, customer_id) {
         fetch("/api/carts", {
             method: "POST",
@@ -22,6 +24,8 @@ function addToCart(book_id, customer_id) {
 }
 
 
+//xóa một sản phẩm khỏi cart
+//cart.html
 function removeCart(cart_id) {
     console.log('helo')
     fetch("/api/remove_cart", {
@@ -50,6 +54,8 @@ function removeCart(cart_id) {
 }
 
 
+// Thay đổi số lượng sản phẩm trong cart
+// cart.html
 function changeCart(cart_id, quantity, customer_id, stock_quantity) {
     if (quantity > stock_quantity) {
         alert('Số lượng tối đa còn lại là ' + stock_quantity + '\nXin lỗi vì sự bất tiện này')
@@ -108,6 +114,9 @@ function isAuthUser() {
 }
 
 
+// Mua sản phẩm với stripe
+//bood_id và quantity là mua ở trong book_detail
+// customer_id là mua trong cart
 function payment(book_id, quantity, customer_id) {
     fetch("/create-checkout-session", {
         method: 'POST',
