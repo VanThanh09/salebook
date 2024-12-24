@@ -1,6 +1,6 @@
 from flask import render_template, request, redirect, jsonify, url_for, session
-from sqlalchemy.testing.util import total_size
 
+from SaleBook.admin import *
 import dao, utils
 from flask_login import login_user, logout_user, login_required, current_user
 from SaleBook import app, login_manager
@@ -8,6 +8,7 @@ import math
 import stripe
 import json
 import os
+from SaleBook.models import UserRole
 
 endpoint_secret = 'whsec_PPI1L0c1djpR8XXd08RbEKQzoBJE6Ppe'
 
@@ -73,11 +74,27 @@ def login_process():
     return render_template('user_process/login.html', s="")
 
 
+@app.route("/login-admin", methods=['post'])
+def login_admin_process():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    user = dao.auth_user(username=username, password=password, role=UserRole.ADMIN)
+    if user:
+        login_user(user)
+
+    return redirect('/admin')
+
+
 @app.route('/profile')
 @login_required
 def view_profile():
-    orders = dao.get_all_order_by_customer_id(current_user.id)
-    return render_template('user_process/profile.html', orders=orders)
+    page = int(request.args.get('page', 1))
+    total = dao.count_order_by_customer(customer_id=current_user.id)
+    page_size = app.config['PAGE_SIZE']
+
+    orders = dao.get_all_order_with_page_size(customer_id=current_user.id, page=int(page))
+
+    return render_template('user_process/profile.html', orders=orders, pages=math.ceil(total / page_size), page=page)
 
 
 @app.route('/logout')
@@ -184,6 +201,81 @@ def common_response():
     return {
         'cart_stats': utils.stats_cart(cart)
     }
+
+
+@app.route('/api/checkout_in_store', methods=['POST'])
+def checkout_in_store():
+    """
+    Tạo order tự hết hạn sau giờ quy định
+    :return:
+    """
+    if not current_user.is_authenticated:
+        return jsonify({"error": "User not authenticated"}), 401  # Nếu người dùng chưa đăng nhập
+
+    if request.method.__eq__('POST'):
+        # Lấy thông tin từ post tạo đối tượng cần thiết
+        book_id = request.json.get('book_id')
+        customer_id = request.json.get('customer_id')
+
+        book = dao.get_book_by_id(book_id=book_id)
+        cart = dao.get_all_cart(customer_id=customer_id)
+
+        if cart:
+            order = dao.add_order_offline(customer_id=current_user.id)
+            for c in cart:
+                dao.add_order_detail(order_id=order.id, book_id=c.book_id, quantity=c.quantity,
+                                     unit_price=dao.get_book_by_id(c.book_id).price)
+                dao.reduce_book_bought(book_id=c.book_id, quantity=c.quantity)
+            dao.remove_all_cart_by_userid(current_user.id)
+            return jsonify({'success': 'Đơn hàng đã được ghi nhận'}), 200
+
+        elif book:
+            quantity = request.json.get('quantity')
+            order = dao.add_order_offline(customer_id=current_user.id)
+            dao.add_order_detail(order_id=order.id, book_id=book.id, quantity=quantity,
+                                 unit_price=book.price)
+            dao.reduce_book_bought(book_id=book.id, quantity=quantity)
+            print(order.time_to_cancel)
+            return jsonify({'success': 'Đơn hàng đã được ghi nhận'}), 200
+
+        else:
+            return jsonify({'error': 'Invalid'}), 404
+    else:
+        return jsonify({'error': 'Invalid request'}), 404
+
+
+@app.route('/api/commit_checkout_offline', methods=['POST'])
+@login_required
+def commit_checkout_offline():
+    """
+    xác nhận lấy đơn thanh toán tại cửa hàng thành công để dừng quá trình hết hạn
+    :return:
+    """
+    if dao.access_check_employee(current_user.id):
+        order_id = request.json.get('order_id')
+        dao.set_order_success(order_id)
+        return jsonify({'success': 'Thành công'}), 200
+    else:
+        return jsonify({'message': 'failed'}), 400
+
+
+@app.route('/order_pending')
+@login_required
+def order_pending():
+    if dao.access_check_employee(current_user.id):
+        search = request.args.get('search_order')
+        not_found = ''
+        if search:
+            orders = dao.get_order_by_id(int(search))
+            if not orders:
+                not_found = 'Không tìm thấy đơn hàng'
+                orders = dao.get_all_order_pending()
+        else:
+            orders = dao.get_all_order_pending()
+
+        return render_template('employee/order_pending.html', orders=orders, not_found=not_found)
+    else:
+        return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
 
 @app.route('/create-checkout-session', methods=['POST'])
@@ -311,10 +403,9 @@ def webhook():
         # Lấy chuỗi dict đã gửi lên từ trước đó
         checkout = event['data']['object']['metadata']
         cart = json.loads(checkout.cart)
-        total_price = sum(int(item["quantity"]) * item["price"] for item in cart)
 
         # Tạo order và order detail
-        order = dao.add_order_online(customer_id=checkout.customer_id, total_price=total_price)
+        order = dao.add_order_online(customer_id=checkout.customer_id)
         for c in cart:
             dao.add_order_detail(order_id=order.id, book_id=c["book_id"], quantity=int(c["quantity"]),
                                  unit_price=c["price"])
@@ -351,10 +442,11 @@ def import_book():
         categories = dao.get_all_category()
         authors = dao.get_all_author()
         books = dao.get_all_book()
-        min_book_per_import = 150
-        remaining_book_for_import = 300
+        min_book_per_import = dao.get_minimun_quantity()
+        remaining_book_for_import = dao.get_minimum_stock()
         return render_template('importer/import_book.html', authors=authors, categories=categories, books=books,
-                               min_book_per_import=min_book_per_import, remaining_book_for_import=remaining_book_for_import)
+                               min_book_per_import=min_book_per_import,
+                               remaining_book_for_import=remaining_book_for_import)
     else:
         return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
@@ -454,7 +546,6 @@ def add_exist_book():
     :return:
     """
 
-
     if dao.access_check(current_user.id):
         session_name = request.form.get('session_name')
         # print(session_name)
@@ -469,7 +560,8 @@ def add_exist_book():
 
         # Kiểm tra  quy định số lượng còn lại thì nhập
         if session_name == 'import_detail':
-            if b.stock_quantity > 300:
+
+            if b.stock_quantity > dao.get_minimum_stock():
                 return jsonify({'message': 'failed'}), 494
 
         # Kiểm tra số lượng bán ra nhỏ hơn trong kho
@@ -479,7 +571,6 @@ def add_exist_book():
             if book_id in details:
                 if details[book_id]["quantity"] + int(request.form.get('quantity')) > b.stock_quantity:
                     return jsonify({'message': 'failed'}), 500
-
 
         if b:
             name = b.name
@@ -529,27 +620,22 @@ def commit_import_book():
     """
     # tính total price
     if dao.access_check_importer(current_user.id):
-        total_price = 0
-        for key in session['import_detail']:
-            import_detail = session['import_detail'][key]
-            # print(import_detail)
 
-            total_price += total_price + import_detail['quantity'] * import_detail['price']
-
-
-        imp = dao.add_import_book(importer_id = current_user.id,total_price=total_price)
+        imp = dao.add_import_book(importer_id=current_user.id)
         for key in session['import_detail']:
             import_detail = session['import_detail'][key]
             if int(import_detail['is_new']) == 0:
                 dao.add_exist_book(book_id=import_detail['book_id'], quantity=import_detail['quantity'])
-                dao.add_import_detail_book(quantity=import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=import_detail['book_id'])
+                dao.add_import_detail_book(quantity=import_detail['quantity'], unit_price=import_detail['price'],
+                                           import_id=imp.id, book_id=import_detail['book_id'])
 
             if int(import_detail['is_new']) == 1:
                 b = dao.add_new_book(name=import_detail['name'], price=import_detail['price'],
-                                 quantity=import_detail['quantity'], description=import_detail['description'],
-                                 barcode=import_detail['barcode'], category_id=import_detail['category_id'],
-                                 author_id=import_detail['author_id'], image=import_detail['image'])
-                dao.add_import_detail_book(quantity=import_detail['quantity'], unit_price=import_detail['price'], import_id=imp.id, book_id=b.id)
+                                     quantity=import_detail['quantity'], description=import_detail['description'],
+                                     barcode=import_detail['barcode'], category_id=import_detail['category_id'],
+                                     author_id=import_detail['author_id'], image=import_detail['image'])
+                dao.add_import_detail_book(quantity=import_detail['quantity'], unit_price=import_detail['price'],
+                                           import_id=imp.id, book_id=b.id)
                 os.remove(import_detail['image'])
 
         del session['import_detail']
@@ -655,22 +741,15 @@ def commit_invoice_book():
     tạo invoice_detail
     :return:
     """
-    # tính total price
     if dao.access_check_employee(current_user.id):
-        total_price = 0
-        for key in session['invoice_detail']:
-            invoice_detail = session['invoice_detail'][key]
-            print(invoice_detail['quantity'])
-            print(invoice_detail['price'])
-            total_price += total_price + invoice_detail['quantity'] * invoice_detail['price']
 
-
-        invoice = dao.add_invoice_book(employee_id=current_user.id,total_price=total_price)
+        invoice = dao.add_invoice_book(employee_id=current_user.id)
         for key in session['invoice_detail']:
             invoice_detail = session['invoice_detail'][key]
             if int(invoice_detail['is_new']) == 0:
                 dao.reduce_book_bought(book_id=invoice_detail['book_id'], quantity=invoice_detail['quantity'])
-                dao.add_invoice_detail_book(invoice_id=invoice.id, book_id=invoice_detail['book_id'], unit_price=invoice_detail['price'], quantity=invoice_detail['quantity'])
+                dao.add_invoice_detail_book(invoice_id=invoice.id, book_id=invoice_detail['book_id'],
+                                            unit_price=invoice_detail['price'], quantity=invoice_detail['quantity'])
 
         del session['invoice_detail']
         return jsonify({'message': 'successfully'}), 200
@@ -688,7 +767,51 @@ def sale_history():
         return render_template('err_auth.html', err='Bạn không có quyền truy cập')
 
 
+import threading
+import time
+
+import schedule
+
+
+def run_continuously(interval=1):
+    """Continuously run, while executing pending jobs at each
+    elapsed time interval.
+    @return cease_continuous_run: threading. Event which can
+    be set to cease continuous run. Please note that it is
+    *intended behavior that run_continuously() does not run
+    missed jobs*. For example, if you've registered a job that
+    should run every minute and you set a continuous run
+    interval of one hour then your job won't be run 60 times
+    at each interval but only once.
+    """
+    cease_continuous_run = threading.Event()
+
+    class ScheduleThread(threading.Thread):
+        @classmethod
+        def run(cls):
+            while not cease_continuous_run.is_set():
+                schedule.run_pending()
+                time.sleep(interval)
+
+    continuous_thread = ScheduleThread()
+    continuous_thread.start()
+    return cease_continuous_run
+
+
+def cancel_order_with_app_context():
+    with app.app_context():
+        dao.auto_cancel_order()
+
+
+schedule.every(1).minute.do(cancel_order_with_app_context)
+
+stop_run_continuously = run_continuously()
 
 if __name__ == "__main__":
-    app.run(debug=True)
-    # app.run(debug=True, host='0.0.0.0', port=8000)
+    try:
+        with app.app_context():
+            app.run(debug=True)
+    finally:
+        stop_run_continuously.set()
+
+# app.run(debug=True, host='0.0.0.0', port=8000)

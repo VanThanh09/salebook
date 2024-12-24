@@ -2,60 +2,130 @@
 
 
 {% block content %}
-<h1 class="text-center text-success mt-1">GIỎ HÀNG</h1>
+<h1 class="text-center my-4">GIỎ HÀNG</h1>
 
 <div class="container">
     {% if cart %}
-    <table class="table">
-        <tr>
-            <th>Tên sản phẩm</th>
-            <th>Đơn giá</th>
-            <th>Số lượng</th>
-            <th></th>
-        </tr>
-        {% for c in cart %}
-        <tr>
-            <td>{{ c.books.name }}</td>
-            <td>{{ "{:,.0f}".format(c.books.price) }} VNĐ</td>
-            <td>
-                <input  type="number" id="{{c.id}}" oninput="changeCart({{c.id}}, this.value, {{c.customer_id}}, {{ c.books.stock_quantity }})"
-                       value="{{ c.quantity }}" min="1" class="form-control"/>
-            </td>
-            <td>
-                <button class="btn btn-danger" onclick="removeCart({{ c.id }})">&times;</button>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="mb-4">
+        <table class="table" style="margin:0px">
+            <tr>
+                <th></th>
+                <th>Tên sản phẩm</th>
+                <th>Đơn giá</th>
+                <th>Số lượng</th>
+                <th></th>
+            </tr>
+            {% for c in cart %}
+            <tr>
+                <td><img src="{{c.books.image}}" alt="" style="object-fit: contain; width: 100%; height: 50px;"></td>
+                <td class="align-middle"><a
+                        href="/{{ c.books.name | lower | replace(' ', '-') }}?book_id={{c.books.id}}" class="text-dark"
+                        style="text-decoration: none"> {{ c.books.name }} </a></td>
+                <td>{{ "{:,.0f}".format(c.books.price) }} VNĐ</td>
+                <td>
+                    <input type="number" id="{{c.id}}"
+                           oninput="changeCart({{c.id}}, this.value, {{c.customer_id}}, {{ c.books.stock_quantity }}, {{ c.books.price }})"
+                           value="{{ c.quantity }}" min="1" class="form-control"/>
+                </td>
+                <td>
+                    <button class="btn bg-dark text-white" onclick="removeCart({{ c.id }})">&times;</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 
-    <div class="alert alert-info">
-<!--        <div class="mb-3">-->
-<!--            <label for="cart-total-quantity" class="form-label">Tổng sản phẩm: </label>-->
-<!--            <input type="text" class="form-control bg-sp" id="cart-total-quantity" value="{{cart_stats.total_quantity}}"-->
-<!--                   disabled>-->
-<!--        </div>-->
-        <span id="iii">{{cart_stats.total_quantity}}</span>
-        <div class="mb-3">
-            <label for="cart-total-amount" class="form-label">Tổng tiền: </label>
-            <input type="text" class="form-control bg-sp" id="cart-total-amount" value="{{ '{:,.0f}'.format(cart_stats.total_amount) }} VNĐ"
-                   disabled>
+    <div class="alert alert-info bg-sp" style="border: 1px solid #a5905e;">
+
+        <h5 class="text-dark">Tổng số lượng sản phẩm: <span id="cart-stat">{{cart_stats.total_quantity}}</span></h5>
+        <h5 class="text-dark">Tổng tiền: <span
+                id="total-amount">{{ '{:,.0f}'.format(cart_stats.total_amount) }} VNĐ</span></h5>
+
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <button class="btn text-white ms-auto me-2 bg-dark"
+                style="width: 200px; height: 50px;" data-bs-toggle="modal"
+                data-bs-target="#muaNgayModal"> Mua ngay
+        </button>
+    </div>
+
+
+    <div class="modal fade" id="muaNgayModal" tabindex="-1" aria-labelledby="muaNgayModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content shadow-lg">
+                {% if cart %}
+                <!-- Modal Header -->
+                <div class="modal-header bg-light text-dark">
+                    <h5 class="modal-title fw-bold" id="muaNgayModalLabel">Thông tin đơn hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <!-- Modal Body -->
+                <div class="modal-body bg-light">
+                    {% for c in cart %}
+                    <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+                        <!-- Ảnh sách -->
+                        <div class="me-3">
+                            <img src="{{ c.books.image }}" alt="Sách" class="img-fluid rounded"
+                                 style="object-fit: cover; width: 70px; height: 70px;">
+                        </div>
+                        <!-- Thông tin sách -->
+                        <div class="flex-grow-1">
+                            <a href="/{{ c.books.name | lower | replace(' ', '-') }}?book_id={{ c.books.id }}"
+                               class="text-dark text-decoration-none fw-bold fs-6">
+                                {{ c.books.name }}
+                            </a>
+                            <p class="mb-1 text-muted small">Đơn giá: {{ "{:,.0f}".format(c.books.price) }} VNĐ</p>
+                            <p class="mb-1 text-muted small" id="quantity{{ c.id }}">Số lượng: {{ c.quantity }}</p>
+                        </div>
+                        <!-- Tổng giá trị cho từng mục -->
+                        <div class="text-end">
+                            <p class="fw-bold text-dark mb-0" id="unit_price_{{ c.id }}">
+                                {{ "{:,.0f}".format(c.books.price * c.quantity) }} VNĐ
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="mb-4">
+                        <label for="paymentMethod" class="form-label fw-bold">Phương thức thanh toán</label>
+                        <select class="form-select" id="paymentMethod" onchange="toggleCreditFields()">
+                            <option value="credit">Thẻ tín dụng</option>
+                            <option value="cash">Thanh toán tại cửa hàng</option>
+                        </select>
+                    </div>
+                    <div id="creditFields" class="">
+                        <div class="mb-4">
+                            <label for="address" class="form-label fw-bold">Địa chỉ</label>
+                            <input type="text" class="form-control" id="address" placeholder="Nhập địa chỉ của bạn">
+                        </div>
+                        <div class="mb-4">
+                            <label for="phone" class="form-label fw-bold">Số điện thoại</label>
+                            <input type="text" class="form-control" id="phone" placeholder="Nhập số điện thoại">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="totalPrice" class="form-label fw-bold">Tổng giá trị</label>
+                        <input type="text" class="form-control bg-white" id="totalPrice"
+                               value="{{ '{:,.0f}'.format(cart_stats.total_amount) }} VNĐ" disabled>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-dark px-5 py-2" id="paymentInCart">Xác nhận mua hàng</button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="modal-body text-center">
+                    <p class="text-muted">Giỏ hàng hiện đang trống.</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
-    <div>
-        <!--        <form action="/create-checkout-session" method="POST">-->
-        <button class="btn" id="paymentInCart">Pay with Stripe
-        </button>
-        <!--        </form>-->
-
-        <button class="btn" id="demo">Pay with Stripe</button>
-
-    </div>
-
     {% else %}
-    <div class="alert alert-info">KHÔNG có sản phẩm nào trong giỏ!</div>
+    <div class="alert alert-info bg-sp text-dark" style="border:none">KHÔNG có sản phẩm nào trong giỏ!</div>
     {% endif %}
 </div>
+
 {% endblock %}
 
 
@@ -65,20 +135,41 @@
         var isValid = true;
 
         {% for c in cart %}
-        let {{ c.books.name | lower | replace(' ', '_') }} = document.getElementById("{{c.id}}").value;
+            let quantity_{{c.id}} = document.getElementById("{{c.id}}").value;
 
-        if ( {{ c.books.name| lower | replace(' ', '_') }} > {{ c.books.stock_quantity }}) {
-            alert('Số lượng tối đa còn lại của {{ c.books.name }} là ' + {{ c.books.stock_quantity }} + '\nXin lỗi vì sự bất tiện này');
-            document.getElementById("{{c.id}}").value = {{ c.books.stock_quantity }};
-            changeCart({{c.id}}, document.getElementById("{{c.id}}").value, {{c.customer_id}}, {{ c.books.stock_quantity }});
-            isValid = false;
-        }
+            if ( quantity_{{c.id}} > {{ c.books.stock_quantity }}) {
+                alert('Số lượng tối đa còn lại của {{ c.books.name }} là ' + {{ c.books.stock_quantity }} + '\nXin lỗi vì sự bất tiện này');
+                document.getElementById("{{c.id}}").value = {{ c.books.stock_quantity }};
+                changeCart({{c.id}}, document.getElementById("{{c.id}}").value, {{c.customer_id}}, {{ c.books.stock_quantity }});
+                isValid = false;
+            }
         {% endfor %}
 
         if (isValid) {
-            payment(null, null, {{ current_user.id }});
+            var paymentMethod = document.getElementById("paymentMethod").value;
+            if (paymentMethod == "credit") {
+                payment(null, null, {{ current_user.id }});
+                return;
+            }
+            if (paymentMethod == "cash") {
+                checkoutOffline(null, null, {{ current_user.id }});
+                var myModal = bootstrap.Modal.getInstance(document.getElementById('muaNgayModal'));
+                myModal.hide();
+                return;
+            }
         }
-    })
+    });
+
+    function toggleCreditFields() {
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        const creditFields = document.getElementById('creditFields');
+
+        if (paymentMethod === 'credit') {
+            creditFields.classList.remove('d-none');
+        } else {
+            creditFields.classList.add('d-none');
+        }
+    }
 </script>
 {% endblock %}
 

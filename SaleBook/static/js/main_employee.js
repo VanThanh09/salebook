@@ -7,7 +7,7 @@ function renderSessionData(data) {
         const importDetailsDiv = document.getElementById('importDetails');
         importDetailsDiv.innerHTML = '';  // Làm sạch div cũ
         const importDetails = data;
-
+        var totalPrice = 0;
         Object.values(importDetails).forEach(item => {
             const bookInfo = `
             <div class="container my-3 card">
@@ -22,20 +22,22 @@ function renderSessionData(data) {
                         </div>
                         <p><strong>Mô Tả:</strong> ${item.description}</p>
                         <div class="d-flex justify-content-between w-100">
-                            <p class="text-start"><strong>Mã Vạch:</strong> ${item.barcode}</p>
-                            <p class="text-end"><strong>Số Lượng:</strong> ${item.quantity}</p>
+                            <p><strong>Mã Vạch:</strong> ${item.barcode}</p>
+                            <p><strong>Thể loại:</strong> ${item.category_id}</p>
                         </div>
                         <div class="d-flex justify-content-between w-100">
-                            <p class="text-start"><strong>Thể loại:</strong> ${item.category_id}</p>
-                            <p class="text-end"><strong>Tác giả:</strong> ${item.author_id}</p>
+                            <p><strong>Số Lượng:</strong> ${item.quantity}</p>
+                            <p><strong>Tác giả:</strong> ${item.author_id}</p>
                         </div>
                     </div>
                 </div>
             </div>
             `;
+            totalPrice = totalPrice + (item.quantity*item.price);
 
             importDetailsDiv.innerHTML += bookInfo;  // Thêm thông tin sách vào div
         });
+        document.getElementById('totalPriceInvoice').innerText = totalPrice.toLocaleString('vi-VN') + " VNĐ";
     }
 }
 

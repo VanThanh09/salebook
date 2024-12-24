@@ -1,0 +1,29 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+{% if current_user.is_authenticated %}
+<h1 class="mb-4">Welcome to Admin Panel</h1>
+<!-- Sidebar -->
+<nav>
+    <a class="navbar-brand text-dark" href="/" style="font-size:20px">	<span class="mr-2">&larr;</span>TRỞ LẠI TRANG CHỦ</a>
+</nav>
+{% else %}
+<h1>Đăng nhập</h1>
+<form method="post" action="/login-admin">
+    <div class="form-floating mb-3 mt-3">
+        <input type="text" class="form-control bg-sp" id="username" placeholder="Tên đăng nhập" name="username">
+    </div>
+
+    <div class="form-floating mt-3 mb-3">
+        <input type="password" class="form-control bg-sp" id="password" placeholder="Mật khẩu" name="password">
+    </div>
+
+    <!-- Căn giữa nút Đăng nhập -->
+    <div class="d-flex justify-content-center mt-5 mb-3">
+        <input type="submit" value="Đăng nhập" class="btn btn-outline-dark w-50"/>
+    </div>
+</form>
+{% endif %}
+
+
+{% endblock %}

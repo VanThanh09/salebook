@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime, Boolean, Double, Date
 from sqlalchemy.orm import relationship
@@ -19,6 +19,18 @@ class UserRole(ClassEnum):
 class PaymentMethod(ClassEnum):
     ONLINE = 1
     OFFLINE = 2
+
+
+class OrderStatus(ClassEnum):
+    PENDING = 1  # Chờ lấy hàng
+    SUCCESS = 2  # Thành công
+    CANCEL = 3  # Đã hủy
+
+
+class Regulation(db.Model):
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    value = Column(Integer, nullable=False)
 
 
 class User(db.Model, UserMixin):
@@ -51,6 +63,8 @@ class Book(db.Model):
                    default='https://res.cloudinary.com/drzc4fmxb/image/upload/v1733048058/tkk9qbfthr5uzpnymx56.jpg')
     barcode = Column(String(50), unique=True, nullable=True)
 
+    category = relationship('Category', backref='books', lazy=True)
+    author = relationship('Author', backref='books', lazy=True)
     category_id = Column(Integer, ForeignKey('category.id'), nullable=False)
     author_id = Column(Integer, ForeignKey('author.id'), nullable=False)
 
@@ -63,8 +77,6 @@ class Author(db.Model):
     name = Column(String(50), nullable=False)
     description = Column(String(255))
 
-    books = relationship('Book', backref='author', lazy=True)
-
     def __str__(self):
         return self.name
 
@@ -74,8 +86,6 @@ class Category(db.Model):
     name = Column(String(50), nullable=False)
     description = Column(String(255))
 
-    books = relationship('Book', backref='category', lazy=True)
-
     def __str__(self):
         return self.name
 
@@ -83,14 +93,29 @@ class Category(db.Model):
 class Order(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     order_date = Column(DateTime, default=datetime.now)
-    shipped = Column(Boolean, default=True)
+    status = Column(Enum(OrderStatus))
     payment_method = Column(Enum(PaymentMethod), default=PaymentMethod.ONLINE)
-    total_price = Column(Double, default=0)
 
     customer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
 
     customer = relationship('User', backref='orders', lazy='subquery')
     order_detail = relationship('OrderDetail', backref='order', lazy='subquery', cascade='all, delete-orphan')
+
+    @property
+    def total_price(self):
+        total_price = 0
+        for detail in self.order_detail:
+            total_price += detail.sub_total
+        return total_price
+
+    @property
+    def time_to_cancel(self):
+        if self.status.name == 'PENDING':
+            regulation = Regulation.query.get(3).value
+            # Giả sử thời gian hết hạn là 24 giờ sau khi đơn hàng được tạo
+            expiry_time = self.order_date + timedelta(hours=regulation)
+            return expiry_time
+        return None
 
 
 class OrderDetail(db.Model):
@@ -101,7 +126,7 @@ class OrderDetail(db.Model):
     order_id = Column(Integer, ForeignKey('order.id'), nullable=False)
     book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
 
-    book = relationship('Book', backref='order_detail')
+    book = relationship('Book')
 
     @property
     def sub_total(self):
@@ -111,12 +136,18 @@ class OrderDetail(db.Model):
 class Import(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     import_date = Column(DateTime, default=datetime.now())
-    total_price = Column(Double, default=0)
 
     importer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
 
     importer = relationship('User', backref='imports', lazy=True)
     import_detail = relationship('ImportDetail', backref='import', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def total_price(self):
+        total_price = 0
+        for detail in self.import_detail:
+            total_price += detail.sub_total
+        return total_price
 
 
 class ImportDetail(db.Model):
@@ -127,7 +158,7 @@ class ImportDetail(db.Model):
     import_id = Column(Integer, ForeignKey('import.id'), nullable=False)
     book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
 
-    book = relationship('Book', backref='import_detail')
+    book = relationship('Book')
 
     @property
     def sub_total(self):
@@ -137,7 +168,6 @@ class ImportDetail(db.Model):
 class Invoice(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     created_date = Column(DateTime, default=datetime.now)
-    total_price = Column(Double, default=0)
 
     customer_id = Column(Integer, ForeignKey('user.id'))
     employee_id = Column(Integer, ForeignKey('user.id'), nullable=False)
@@ -145,6 +175,13 @@ class Invoice(db.Model):
     employee = relationship('User', backref='invoice_employees', lazy=True, foreign_keys=[employee_id])
     customer = relationship('User', backref='invoice_customers', lazy=True, foreign_keys=[customer_id])
     invoice_detail = relationship('InvoiceDetail', backref='invoice', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def total_price(self):
+        total_price = 0
+        for detail in self.invoice_detail:
+            total_price += detail.sub_total
+        return total_price
 
 
 class InvoiceDetail(db.Model):
@@ -155,7 +192,7 @@ class InvoiceDetail(db.Model):
     invoice_id = Column(Integer, ForeignKey('invoice.id'), nullable=False)
     book_id = Column(Integer, ForeignKey('book.id'), nullable=False)
 
-    books = relationship('Book', backref='invoice', lazy=True)
+    books = relationship('Book', lazy=True)
 
     @property
     def sub_total(self):
@@ -172,14 +209,21 @@ class Cart(db.Model):
     books = relationship('Book', lazy='subquery')
 
 
-
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
 
+        # r1 = Regulation(name='Số lượng nhập tối thiểu', value=150)
+        # r2 = Regulation(name='Nhập những đầu sách có số lượng ít hơn', value=300)
+        # r3 = Regulation(name='Giờ hủy đơn', value=48)
+        # db.session.add(r1)
+        # db.session.add(r2)
+        # db.session.add(r3)
+
+
+
         # import hashlib
-        # importer = User(name='Employee', username = 'employee', password=str(hashlib.md5('123'.strip().encode('utf-8')).hexdigest()), user_role=UserRole.EMPLOYEE)
+        # importer = User(name='Admin', username = 'admin', password=str(hashlib.md5('123'.strip().encode('utf-8')).hexdigest()), user_role=UserRole.ADMIN)
         # db.session.add(importer)
 
         # cus = User.query.get(1)

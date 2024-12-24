@@ -56,7 +56,7 @@ function removeCart(cart_id) {
 
 // Thay đổi số lượng sản phẩm trong cart
 // cart.html
-function changeCart(cart_id, quantity, customer_id, stock_quantity) {
+function changeCart(cart_id, quantity, customer_id, stock_quantity, price) {
     if (quantity > stock_quantity) {
         alert('Số lượng tối đa còn lại là ' + stock_quantity + '\nXin lỗi vì sự bất tiện này')
         document.getElementById(cart_id).value = stock_quantity;
@@ -92,8 +92,11 @@ function changeCart(cart_id, quantity, customer_id, stock_quantity) {
         for (let item of items)
             item.innerText = data.total_quantity;
 
-        document.getElementById("iii").innerText = data.total_quantity;
-        document.getElementById("cart-total-amount").value = data.total_amount.toLocaleString() + "VNĐ";
+        document.getElementById("cart-stat").innerText = data.total_quantity;
+        document.getElementById("total-amount").innerText = data.total_amount.toLocaleString() + "VNĐ";
+        document.getElementById("totalPrice").value = data.total_amount.toLocaleString();
+        document.getElementById(`quantity_${cart_id}`).innerText = quantity;
+        document.getElementById(`unit_price_${cart_id}`).innerText = (quantity*price).toLocaleString() + "VNĐ";
 
 
 //        window.location.reload();
@@ -138,6 +141,33 @@ function payment(book_id, quantity, customer_id) {
         window.location.href = result.checkout_url
     });
 }
+
+
+function checkoutOffline(book_id, quantity, customer_id) {
+    fetch("/api/checkout_in_store", {
+        method: 'POST',
+        body: JSON.stringify({
+            "book_id": book_id,
+            "quantity": quantity,
+            "customer_id": customer_id,
+        }),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).then(res => {
+        if(res.status === 401) {
+            window.location.href = '/login'
+            return
+        }
+        if(res.status === 200) {
+            alert('Đơn hàng của bạn đã được lưu \nVui lòng tới cửa hàng để nhận hàng và thanh toán'); // chuyêển res thành đối tượng js
+            window.location.reload();
+        }
+    }).catch(err => {
+        console.error('error: ', err)
+    });
+}
+
 
 function demo() {
     console.log('1')

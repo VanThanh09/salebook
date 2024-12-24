@@ -1,0 +1,118 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+
+<h1 class="text-center text-dark">THỐNG KÊ DOANH THU</h1>
+
+<form class="d-flex align-items-center" style="margin-bottom: 30px;">
+    <!-- Tìm kiếm từ khóa -->
+    <div class="form-group mb-0 w-25">
+        <input type="text" class="form-control" name="kw" placeholder="Nhập từ khóa">
+    </div>
+
+    <!-- Chọn ngày -->
+    <div class="form-group mb-0 ml-4">
+        <input type="month" class="form-control" name="date">
+    </div>
+
+    <!-- Nút tìm kiếm -->
+    <button type="submit" class="btn btn-info ml-4">Tìm thống kê</button>
+</form>
+
+<div class="row">
+    <div class="col-12 col-lg-6">
+        <table class="table">
+            <tr>
+                <th>Tên danh mục</th>
+                <th>Doanh thu</th>
+                <th>Lượt bán ra</th>
+                <th>Tỉ lệ</th>
+            </tr>
+            {% for s in stats %}
+            <tr>
+                <td>{{s.category_name}}</td>
+                <td>
+                    {% if s.revenue %}
+                    {{ "{:,.0f}".format(s.revenue) }} VNĐ
+                    {% else %}
+                    0 VND
+                    {% endif %}
+                </td>
+                <td>
+                    {% if s.rental_count %}
+                    {{s.rental_count}}
+                    {% else %}
+                    0
+                    {% endif %}
+                </td>
+                <td>
+                    {% if s.percentage %}
+                    {{ "{:.2f}".format(s.percentage) }}%
+                    {% else %}
+                    0%
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <div class="d-flex w-100">
+            <p class="ml-2 mb-2"><strong class="fs-5">Tổng doanh thu: {% if total_revenue %}{{
+                "{:,.0f}".format(total_revenue) }} VNĐ {% endif %}</strong></p>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div>
+            <canvas style="width:100%" id="myChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let data = [];
+    let labels = [];
+
+    {% for s in stats %}
+        data.push({{ s.revenue }})
+        labels.push('{{ s.category_name }}')
+    {% endfor %}
+    function draw(ctx, data, labels) {
+
+
+              new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: '# Doanh thu',
+                    data: data,
+                    borderWidth: 1,
+                    backgroundColor: [
+                        "rgba(75, 192, 192, 0.8)",
+                        "rgba(255, 206, 86, 0.8)",
+                        "rgba(54, 162, 235, 0.8)",
+                        "rgba(153, 102, 255, 0.8)",
+                        "rgba(255, 99, 132, 0.8)",
+                        "rgba(201, 203, 207, 0.8)"
+                    ]
+                  }]
+                },
+                options: {
+                  scales: {
+                    y: {
+                      beginAtZero: true
+                    }
+                  }
+                }
+              });
+        }
+
+    window.onload = function() {
+         const ctx = document.getElementById('myChart');
+         draw(ctx, data, labels);
+    }
+
+</script>
+
+{% endblock %}

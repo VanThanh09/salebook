@@ -38,28 +38,57 @@ function commitInvoice() {
 }
 
 
+function commitCheckoutOffline(order_id) {
+    fetch('/api/commit_checkout_offline', {
+            method: 'POST',
+            body: JSON.stringify({
+                'order_id': order_id,
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(res => {
+            if (res.status == 200) {
+                alert('Đã xác nhận khách hàng lấy đơn thành công');
+                window.location.reload();
+            } else {
+                alert('Xảy ra lỗi trong quá trình xác nhận!!');
+            }
+        }).catch(error => {
+            console.log('error: ',error);
+        });
+}
+
+
 //Camera quét mã vạch
 // Sự kiện quét thành công
 function onScanSuccess(decodedText, decodedResult) {
     document.getElementById('barcode').value = decodedText;
 
     let input = document.getElementById('barcode').value;
+    let quantity = document.getElementById('quantityExist');
+
     let select = document.getElementById('existBook');
     let options = select.getElementsByTagName('option');
-    let quantity = document.getElementById('quantityExist');
 
     let found = false;
     for (let option of options) {
         if (option.dataset.barcode === input) {
-            options[0].selected = false;
-            option.selected = true;
-            quantity.value = 1;
-            found = true;
+            if (option.selected) {
+                quantity.value = parseInt(quantity.value) + 1;
+                found = true;
+            } else {
+                options[0].selected = false;
+                option.selected = true;
+                quantity.value = 1;
+                found = true;
+            }
         } else {
             option.selected = false;
         }
     }
     if (!found) {
+        alert('Không tìm thấy mã vạch trong hệ thống')
         quantity.value = '';
         options[0].selected = true;
     }

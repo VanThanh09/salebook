@@ -7,7 +7,7 @@ Thông tin tài khoản
 {% block content %}
 <div class="container mt-5">
     <!-- Card Profile -->
-    <div class="card">
+    <div class="card bg-sp">
         <div class="row g-0">
             <div class="col-md-4 d-flex justify-content-center align-items-center">
                 <!-- Ảnh đại diện -->
@@ -16,7 +16,7 @@ Thông tin tài khoản
             <div class="col-md-8">
                 <div class="card-body">
                     <h5 class="card-title">{{current_user.name}}</h5>
-                    <p class="card-text">Email: </p>
+                    <p class="card-text">Email: {% if current_user.email %}{{current_user.email}} {% endif %}</p>
                     <p class="card-text">Ngày sinh: </p>
                     <p class="card-text">Giới tính: </p>
                     <p class="card-text">Số điện thoại: </p>
@@ -41,21 +41,31 @@ Thông tin tài khoản
             {% if orders %}
             <div class="accordion" id="orderAccordion">
                 {% for order in orders %}
-                <div class="accordion-item">
+                <div class="accordion-item bg-sp">
                     <h2 class="accordion-header" id="heading{{ order.id }}">
                         <button class="btn w-100 text-start d-flex justify-content-between align-items-center"
-                                type="button"
+                                type="button" style="border: 1px solid #000000;"
                                 data-bs-toggle="collapse" data-bs-target="#collapse{{ order.id }}"
                                 aria-expanded="true" aria-controls="collapse{{ order.id }}">
                             <span>Đơn hàng #{{ order.id }} - Tổng tiền: {{ "{:,.0f}".format(order.total_price) }} VNĐ</span>
-                            <span>Ngày đặt: {{ order.order_date }}</span>
+                            <span>Ngày đặt: {{ order.order_date.strftime("%H:%M %d/%m/%Y") }}</span>
                         </button>
                     </h2>
-                    <div id="collapse{{ order.id }}" class="accordion-collapse collapse"
-                         aria-labelledby="heading{{ order.id }}" data-bs-parent="#orderAccordion">
+                    <div id="collapse{{ order.id }}" class="accordion-collapse collapse bg-main"
+                         aria-labelledby="heading{{ order.id }}"> <!--data-bs-parent="#orderAccordion"-->
                         <div class="accordion-body">
-                            <p><strong>Thanh toán:</strong> {{ order.payment_method.name }}</p>
-                            <p><strong>Trạng thái giao hàng:</strong> {{ "Đã giao" if order.shipped else "Chưa giao" }}
+                            <p><strong>Trạng thái:</strong>
+                                {% if order.status.name == 'SUCCESS' %} <span
+                                        style="color: #32CD32">Đã thanh toán</span> {% endif %}
+                                {% if order.status.name == 'PENDING' %} <span style="color: #FF0000">Chờ thanh toán tại cửa hàng - Tự hủy lúc {{ order.time_to_cancel.strftime("%H:%M:%S %d/%m/%Y") }}
+                                {% endif %}
+                                {% if order.status.name == 'CANCEL' %} <span style="color: #FF0000">Đã hủy</span> {%
+                                endif %}
+                            </p>
+                            <p><strong>Phương thức thanh toán:</strong>
+                                {% if order.payment_method.name == 'ONLINE' %} <span>Credit cart</span> {% endif %}
+                                {% if order.payment_method.name == 'OFFLINE' %} <span>Thanh toán tại cửa hàng</span> {%
+                                endif %}
                             </p>
 
                             <!-- Chi tiết đơn hàng -->
@@ -87,6 +97,26 @@ Thông tin tài khoản
                     </div>
                 </div>
                 {% endfor %}
+            </div>
+
+            <!--pagination-->
+            <div>
+                {% if pages > 1 %}
+                <ul class="pagination bg-main justify-content-center my-3">
+                    <li class="page-item"><a class="page-link bg-main" href="/profile?page={{page-1}}"
+                                             style="color: #887d55; {% if page == 1 %} pointer-events: none; {% endif %}">Previous</a>
+                    </li>
+                    {% for i in range(1, pages + 1) %}
+                    <li class="page-item"><a class="page-link bg-main" href="/profile?page={{i}}"
+                                             style="color: #887d55; {% if i == page %} text-decoration: underline; background-color: #bfbaaf; {% endif %}">{{i}}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item"><a class="page-link bg-main" href="/profile?page={{page+1}}"
+                                             style="color: #887d55; {% if page == pages %} pointer-events: none; {% endif %}">Next</a>
+                    </li>
+
+                </ul>
+                {% endif %}
             </div>
             {% else %}
             <div class="alert bg-sp text-center">

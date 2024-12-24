@@ -132,14 +132,11 @@
                 alert("Xin lỗi, chúng tôi không còn đủ số lượng cho bạn\nSản phẩm trong kho: {{book.stock_quantity}}");
                 document.getElementById("quantity").value = {{book.stock_quantity}};
             } else {
-
                 if (paymentMethod == "credit") {
                     payment({{ book.id }}, quantity, null) // gửi api cho server rồi server gọi api stripe thanh toán
                 }
-                else {
-                    // Hàm xử lí mua offline
-                    alert("Đơn hàng của bạn đã được ghi nhận")
-                    // Ẩn modal khi xác nhận xong
+                if (paymentMethod == "cash") {
+                    checkoutOffline({{ book.id }}, quantity, null)
                     var myModal = bootstrap.Modal.getInstance(document.getElementById('muaNgayModal'));
                     myModal.hide();
                 }
