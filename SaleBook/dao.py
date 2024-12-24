@@ -157,6 +157,13 @@ def access_check_employee(user_id):
     return False
 
 
+def access_check_admin(user_id):
+    u = User.query.get(user_id)
+    if u and u.user_role == UserRole.ADMIN:
+        return True
+    return False
+
+
 # Thêm một sản phẩm vô cart
 def add_to_cart(customer_id, book_id, quantity):
     cart = Cart.query.filter(Cart.book_id == book_id, Cart.customer_id == customer_id).first()

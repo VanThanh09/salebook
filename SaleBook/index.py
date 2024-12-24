@@ -191,6 +191,8 @@ def common_response():
             dashboard = '/import_book'
         if dao.access_check_employee(current_user.id):
             dashboard = '/sale_book'
+        if dao.access_check_admin(current_user.id):
+            dashboard = '/admin'
 
         if dashboard:
             return {
@@ -262,6 +264,10 @@ def commit_checkout_offline():
 @app.route('/order_pending')
 @login_required
 def order_pending():
+    """
+    Lấy danh sách các order đang chờ
+    :return:
+    """
     if dao.access_check_employee(current_user.id):
         search = request.args.get('search_order')
         not_found = ''
