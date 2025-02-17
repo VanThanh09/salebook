@@ -1,4 +1,4 @@
-# Mobile Store Project
+# Book Store Project
 
 This is a Flask web application for a book store.
 
@@ -13,8 +13,8 @@ This is a Flask web application for a book store.
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/duyan77/mobile-store.git
-    cd mobile-store
+    git clone https://github.com/VanThanh09/salebook
+    cd salebook
     ```
 
 2. Create and activate a virtual environment:
@@ -31,52 +31,30 @@ This is a Flask web application for a book store.
     ```
 
 ## Database Setup
+1. **Install MySQL** (if you don't have it installed):
 
-1. Apply the migrations:
+    - For Linux:
 
-    ```sh
-    python manage.py migrate
-    ```
+        ```sh
+        sudo apt-get install mysql-server
+        ```
 
-2. Create a superuser:
+    - For Windows: Download and install MySQL from [here](https://dev.mysql.com/downloads/installer/).
 
-    ```sh
-    python manage.py createsuperuser
-    ```
-
-3. Load data:
-    ```sh
-    python manage.py loaddata data.json
-    ```
-    
-## Admin User Account
-
-- **Username:** duyan
-- **Email:** anbui5948@gmail.com
-- **Password:** 123
-
-## Running the Server
-
-1. Start the development server:
+2. **Login to MySQL as root**:
+   
+    Open your terminal or command prompt and log in to MySQL as the root user.
 
     ```sh
-    python manage.py runserver
+    mysql -u root -p
     ```
 
-2. Open your web browser and go to `http://127.0.0.1:8000/` to see the application.
+    When prompted for a password, enter `123456`.
 
-## Project Structure
+3. **Create the `bookstore` database**:
 
-- `store/urls.py`: URL routing for the store app.
-- `store/views.py`: View functions for the store app.
-- `store/templates/store/store.html`: Template for the store view.
-- `store/templates/store/base.html`: Base template for the project.
+    Once you are inside the MySQL shell, run the following commands:
 
-## Usage
-
-- Navigate to the home page to see the store.
-- Use the navigation bar to explore different categories and functionalities.
-
-## License
-
-This project is licensed under the MIT License.# mobile-app
+    ```sql
+    CREATE DATABASE bookstore;
+    ```    
