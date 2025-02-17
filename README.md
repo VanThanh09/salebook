@@ -50,8 +50,9 @@ This is a Flask web application for a book store.
     ```
 
     When prompted for a password, enter `123456`.
+    If password isn't `123456`, you must change password database in salebook/__init__.py
 
-3. **Create the `bookstore` database**:
+4. **Create the `bookstore` database**:
 
     Once you are inside the MySQL shell, run the following commands:
 
