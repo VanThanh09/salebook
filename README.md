@@ -56,4 +56,8 @@ This is a Flask web application for a book store.
 
     Once you are inside the MySQL shell, run the following commands:
 
-    Run file models   
+    Run file salebook/`models.py`
+
+5. **Runing project**:
+
+   Run file salebook/`index.py`
