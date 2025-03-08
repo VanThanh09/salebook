@@ -84,15 +84,25 @@ This is a Flask web application for a book store.
 
 ## Accout
 1. **Admin**
+   
    Username: admin
+   
    Password: 123
+   
 2. **Inventory Manager**
+   
    Username: importer
+   
    Password: 123
+   
 3. **Employee**
+   
    Username: employee
+
    Password: 123
+   
 4. **User**
+
    Register new accout
    
 
