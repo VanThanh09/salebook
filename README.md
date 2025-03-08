@@ -2,29 +2,49 @@
 
 This is a Flask web application for a book store.
 
+## Features
+1. **User**
+- Login/Register
+- Buy books online
+- Pre-order books for in-store pickup
+- Add books to the shopping cart
+- View personal purchase history
+2. **Importer**
+- Add new books to the system
+- View personal book import history
+3. **Employee**
+- Create new invoices for in-store purchases
+- Confirm orders when customers pick up pre-ordered books
+ - View personal sales history
+4. **Admin**
+- Manage users (view, edit, delete User, Importer, Employee accounts)
+- View sales and inventory reports
+
 ## Prerequisites
 
 - Python 3.x
 - Flask 3.x or later
 - pip (Python package installer)
+- Stripe
+- Cloudinary 
 
 ## Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 
     ```sh
     git clone https://github.com/VanThanh09/salebook
     cd salebook
     ```
 
-2. Create and activate a virtual environment:
+2. **Create and activate a virtual environment:**
 
     ```sh
     python -m venv venv
     source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     ```
 
-3. Install the required packages:
+3. **Install the required packages:**
 
     ```sh
     pip install -r requirements.txt
@@ -61,3 +81,18 @@ This is a Flask web application for a book store.
 ## Runing project
 
    Run file salebook/`index.py`
+
+## Accout
+1. **Admin**
+   Username: admin
+   Password: 123
+2. **Inventory Manager**
+   Username: importer
+   Password: 123
+3. **Employee**
+   Username: employee
+   Password: 123
+4. **User**
+   Register new accout
+   
+
