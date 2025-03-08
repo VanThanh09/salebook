@@ -10,7 +10,6 @@ import json
 import os
 from SaleBook.models import UserRole
 
-endpoint_secret = 'whsec_PPI1L0c1djpR8XXd08RbEKQzoBJE6Ppe'
 
 login_manager.login_view = "/login"
 
@@ -381,6 +380,7 @@ def create_checkout_session():
     else:
         return jsonify({'error': 'Invalid request'}), 404
 
+endpoint_secret = 'whsec_PPI1L0c1djpR8XXd08RbEKQzoBJE6Ppe'
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
