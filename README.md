@@ -63,14 +63,11 @@ This is a Flask web application for a book store.
 
 2. **Login to MySQL as root**:
    
-    Open your terminal or command prompt and log in to MySQL as the root user.
-
-    ```sh
-    mysql -u root -p
-    ```
-
-    When prompted for a password, enter `123456`.
-    If password isn't `123456`, you must change password database in salebook/`__init__.py`
+    In project we use user 'root' with password '123456' and database name 'bookstore'
+   
+    You can configure the database in salebook/`__init__.py` using the following syntax:
+   
+    app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://<your_database_user>:%s@localhost/<your_database_name>?charset=utf8mb4" % quote('<your_database_password>')
 
 4. **Create the `bookstore` database**:
 
@@ -83,26 +80,25 @@ This is a Flask web application for a book store.
    Run file salebook/`index.py`
 
 ## Accout
-1. **Admin**
-   
+1. **Admin:** http://`<your-localhost>`/admin
+    
    Username: admin
    
    Password: 123
    
-2. **Inventory Manager**
+2. **Inventory Manager:** http://`<your-localhost>`/import_book
    
    Username: importer
    
    Password: 123
    
-3. **Employee**
+3. **Employee:** http://`<your-localhost>`/sale_book
    
    Username: employee
 
    Password: 123
    
-4. **User**
-
+4. **User:**
    Register new accout
    
 
