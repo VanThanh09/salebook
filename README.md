@@ -80,19 +80,19 @@ This is a Flask web application for a book store.
    Run file salebook/`index.py`
 
 ## Accout
-1. **Admin:** http://`<your-localhost>`/admin
+1. **Admin:** http://`<your-domain>`/admin
     
    Username: admin
    
    Password: 123
    
-2. **Inventory Manager:** http://`<your-localhost>`/import_book
+2. **Inventory Manager:** http://`<your-domain>`/import_book
    
    Username: importer
    
    Password: 123
    
-3. **Employee:** http://`<your-localhost>`/sale_book
+3. **Employee:** http://`<your-domain>`/sale_book
    
    Username: employee
 
